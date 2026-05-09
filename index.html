@@ -4315,7 +4315,32 @@ function resumenKolbeResultados(){
     tr.appendChild(cell(r.equipo, null, true));
     tr.appendChild(cell(r.categoria, "var(--gris4)", false));
     tr.appendChild(cell(r.entrenador, "var(--gris5)", false));
-    tr.appendChild(cell(r.partido, r.partido === "🟡 DESCANSO" ? "var(--gris3)" : null, false));
+
+    // Celda partido — editable inline (clic en el ✏️) para que David pueda
+    // meter manualmente el rival/condición en el propio modal de Resultados
+    // (útil para federados FS o si el modal de Horarios no tiene el dato).
+    // savedRow.partido (en localStorage) tiene prioridad sobre r.partido.
+    var partidoInicial = (savedRow.partido !== undefined && savedRow.partido !== null && savedRow.partido !== "")
+                          ? savedRow.partido : r.partido;
+    var tdPart = document.createElement("td");
+    tdPart.style.cssText = "padding:7px 10px;border:1px solid var(--gris2);position:relative;";
+    if(partidoInicial === "🟡 DESCANSO") tdPart.style.color = "var(--gris3)";
+    var spanPart = document.createElement("span");
+    spanPart.textContent = partidoInicial;
+    var btnEditPart = document.createElement("button");
+    btnEditPart.textContent = "✏️";
+    btnEditPart.title = "Editar partido manualmente (ej: '🏠 vs CD POZUELO' o '✈️ vs FS BOADILLA')";
+    btnEditPart.style.cssText = "background:none;border:none;cursor:pointer;font-size:11px;margin-left:6px;opacity:.45";
+    tdPart.appendChild(spanPart);
+    tdPart.appendChild(btnEditPart);
+    tr.appendChild(tdPart);
+
+    // Si savedRow.partido cambió la condición (🏠/✈️) recalcular _p
+    if(partidoInicial && partidoInicial !== "🟡 DESCANSO" && partidoInicial !== r.partido){
+      var esLocalSav = partidoInicial.indexOf("🏠") !== -1;
+      r._p = esLocalSav ? { eq1: "CD KOLBE", eq2: partidoInicial }
+                        : { eq1: partidoInicial, eq2: "CD KOLBE" };
+    }
 
     // Celda resultado (input)
     var tdRes = document.createElement("td");
@@ -4323,11 +4348,53 @@ function resumenKolbeResultados(){
     var inpRes = document.createElement("input");
     inpRes.type = "text";
     inpRes.placeholder = "3-1";
-    inpRes.value = savedRow.resultado || (r.partido === "🟡 DESCANSO" ? "" : "");
-    inpRes.disabled = (r.partido === "🟡 DESCANSO");
+    inpRes.value = savedRow.resultado || "";
+    // Solo deshabilitar si es DESCANSO Y no hay edición manual previa
+    inpRes.disabled = (partidoInicial === "🟡 DESCANSO");
     inpRes.style.cssText = "width:100%;padding:5px 6px;border:1px solid var(--gris3);border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:center;font-weight:700;color:var(--verde);background:" + (inpRes.disabled?"var(--gris1)":"#fff");
     tdRes.appendChild(inpRes);
     tr.appendChild(tdRes);
+
+    // Cablear el handler del lápiz del partido (forward refs ya disponibles vía closure cuando se ejecuta)
+    btnEditPart.addEventListener("click", function(){
+      var current = spanPart.textContent === "🟡 DESCANSO" ? "" : spanPart.textContent;
+      var inpEd = document.createElement("input");
+      inpEd.type = "text";
+      inpEd.value = current;
+      inpEd.placeholder = "🏠 vs RIVAL  ó  ✈️ vs RIVAL";
+      inpEd.style.cssText = "width:92%;font-size:12px;padding:4px 6px;border:1px solid var(--verde);border-radius:4px;font-family:var(--f)";
+      tdPart.replaceChild(inpEd, spanPart);
+      btnEditPart.style.display = "none";
+      inpEd.focus(); inpEd.select();
+      function guardar(){
+        var v = inpEd.value.trim();
+        if(!v) v = "🟡 DESCANSO";
+        spanPart.textContent = v;
+        tdPart.style.color = (v === "🟡 DESCANSO") ? "var(--gris3)" : "";
+        if(v !== "🟡 DESCANSO"){
+          // Actualizar _p sintético — necesario para que _autoIcono sepa el lado de Kolbe
+          var esLocal = v.indexOf("🏠") !== -1;
+          r._p = esLocal ? { eq1: "CD KOLBE", eq2: v } : { eq1: v, eq2: "CD KOLBE" };
+          if(inpRes.disabled){
+            inpRes.disabled = false;
+            inpRes.style.background = "#fff";
+          }
+        } else {
+          r._p = null;
+          inpRes.value = "";
+          inpRes.disabled = true;
+          inpRes.style.background = "var(--gris1)";
+        }
+        if(!btnIc.dataset.forced) setIcono("auto");
+        tdPart.replaceChild(spanPart, inpEd);
+        btnEditPart.style.display = "";
+      }
+      inpEd.addEventListener("blur", guardar);
+      inpEd.addEventListener("keydown", function(e){
+        if(e.key === "Enter") guardar();
+        if(e.key === "Escape"){ inpEd.value = current; guardar(); }
+      });
+    });
 
     // Celda icono (botón ciclable)
     var tdIc = document.createElement("td");
