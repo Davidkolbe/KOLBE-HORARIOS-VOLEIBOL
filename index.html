@@ -3989,16 +3989,26 @@ function _buildIGContainer(format, semana, rowsIG, kind){
       if(descanso || sin){
         right.innerHTML = '<div style="font-size:' + theme.eqSize + 'px;font-weight:600;color:' + GRIS4 + '">' + (descanso ? "🟡 Descanso" : (kind === "resultados" ? "⏳ Sin resultado" : "⏳ Por confirmar")) + '</div>';
       } else if(kind === "resultados"){
-        // Modo resultados: marcador grande + icono ✅/❌/➖
+        // Modo resultados: marcador grande + icono ✅/❌/➖, o "📌 APLAZADO" si toca
         var resultadoTxt = r.resultado || "";
         var iconoTxt = r.icono || "";
-        var resCol = iconoTxt === "✅" ? VERDE : (iconoTxt === "❌" ? "#b71c1c" : (iconoTxt === "➖" ? "#e65100" : NEGRO));
-        right.innerHTML =
-          '<div style="font-size:' + (theme.detSize*0.95) + 'px;color:' + GRIS5 + ';line-height:1.2">' + _esc(r.partido || "") + '</div>'
-          + '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:4px">'
-          +   (iconoTxt ? '<span style="font-size:' + (theme.eqSize*1.1) + 'px;line-height:1">' + _esc(iconoTxt) + '</span>' : '')
-          +   '<span style="font-size:' + (theme.eqSize*1.35) + 'px;font-weight:700;color:' + resCol + ';font-family:\'IBM Plex Mono\',monospace;letter-spacing:1px">' + _esc(resultadoTxt || "—") + '</span>'
-          + '</div>';
+        var esAplazado = /APLAZAD|POSTPONED|APL\b/i.test(resultadoTxt);
+        if(esAplazado){
+          right.innerHTML =
+            '<div style="font-size:' + (theme.detSize*0.95) + 'px;color:' + GRIS5 + ';line-height:1.2">' + _esc(r.partido || "") + '</div>'
+            + '<div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:6px">'
+            +   '<span style="font-size:' + (theme.eqSize*1.1) + 'px;line-height:1">📌</span>'
+            +   '<span style="font-size:' + theme.eqSize + 'px;font-weight:700;color:#e65100;letter-spacing:1px">APLAZADO</span>'
+            + '</div>';
+        } else {
+          var resCol = iconoTxt === "✅" ? VERDE : (iconoTxt === "❌" ? "#b71c1c" : (iconoTxt === "➖" ? "#e65100" : NEGRO));
+          right.innerHTML =
+            '<div style="font-size:' + (theme.detSize*0.95) + 'px;color:' + GRIS5 + ';line-height:1.2">' + _esc(r.partido || "") + '</div>'
+            + '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:4px">'
+            +   (iconoTxt ? '<span style="font-size:' + (theme.eqSize*1.1) + 'px;line-height:1">' + _esc(iconoTxt) + '</span>' : '')
+            +   '<span style="font-size:' + (theme.eqSize*1.35) + 'px;font-weight:700;color:' + resCol + ';font-family:\'IBM Plex Mono\',monospace;letter-spacing:1px">' + _esc(resultadoTxt || "—") + '</span>'
+            + '</div>';
+        }
       } else {
         var horaCol = (r.horario && r.horario !== "—") ? VERDE : GRIS4;
         right.innerHTML =
@@ -4099,6 +4109,8 @@ function exportarInstagramKolbe(format, semana, rowsIG, kind){
 // o fuera. Se puede sobrescribir manualmente desde la UI.
 function _autoIcono(p, resultado){
   if(!resultado) return "";
+  // Caso especial: aplazado
+  if(/APLAZAD|POSTPONED|APL\b/i.test(String(resultado))) return "📌";
   // Aceptar formatos "3-1", "3 - 1", "3:1", "3 1"
   var m = String(resultado).replace(/\s+/g,"").match(/^(\d{1,3})[\-:](\d{1,3})$/);
   if(!m) return "";
@@ -4111,6 +4123,29 @@ function _autoIcono(p, resultado){
   if(kolbe > rival) return "✅";
   if(kolbe < rival) return "❌";
   return "➖";
+}
+
+// Normalización para matching tolerante: mayúsculas, sin tildes, sin puntos, espacios colapsados
+function _normalizaNombreEquipo(s){
+  return String(s||"")
+    .toUpperCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g,"")  // sin tildes
+    .replace(/[\.\,]/g,"")                              // sin puntos ni comas
+    .replace(/\s+/g," ")                                // espacios colapsados
+    .trim();
+}
+
+// Detecta categoría a partir del nombre de la competición de Clupik (LIGA F-7 INFANTIL, COPA ALEVIN F7…)
+function _categoriaDesdeComp(comp){
+  var c = _normalizaNombreEquipo(comp);
+  if(/PREBENJAMIN/.test(c)) return "PREBENJAMIN";
+  if(/BENJAMIN/.test(c))    return "BENJAMIN";
+  if(/ALEVIN/.test(c))      return "ALEVIN";
+  if(/INFANTIL/.test(c))    return "INFANTIL";
+  if(/CADETE/.test(c))      return "CADETE";
+  if(/JUVENIL/.test(c))     return "JUVENIL";
+  if(/CHUPETIN/.test(c))    return "CHUPETIN";
+  return "";
 }
 
 function resumenKolbeResultados(){
@@ -4348,50 +4383,102 @@ function resumenKolbeResultados(){
       .then(function(r){ return r.json(); })
       .then(function(data){
         if(data && data.error){ throw new Error(data.error); }
-        var marcadores = (data.partidos || []).filter(function(p){ return p.score_text; });
-        if(!marcadores.length){
-          alert("Clupik no tiene marcadores aún para esta jornada (los entrenadores no han cerrado actas).");
+        // Filas elegibles del modal (con input no deshabilitado), indexadas para matching tolerante
+        var trs = tbody.querySelectorAll("tr[data-rowkey]");
+        var filasIndexadas = [];
+        for(var i=0; i<trs.length; i++){
+          var rk = trs[i].getAttribute("data-rowkey");
+          var partes = rk.split("_");
+          var disc = partes[0]||"", equipo = partes[1]||"", cat = partes[2]||"";
+          var inp = trs[i].querySelector("input[type=text]");
+          filasIndexadas.push({
+            tr: trs[i], rk: rk, disc: disc,
+            equipoNorm: _normalizaNombreEquipo(equipo),
+            catNorm: _normalizaNombreEquipo(cat),
+            input: inp,
+            usada: false,
+          });
+        }
+
+        // Considerar SOLO partidos Kolbe (jugados con marcador, o aplazados)
+        var partidosKolbe = (data.partidos || []).filter(function(p){
+          var hasKolbe = (p.eq1||"").toUpperCase().indexOf("KOLBE") !== -1
+                      || (p.eq2||"").toUpperCase().indexOf("KOLBE") !== -1;
+          if(!hasKolbe) return false;
+          return !!p.score_text || !!p.postponed;
+        });
+
+        if(!partidosKolbe.length){
+          alert("Clupik no tiene marcadores ni aplazados para esta jornada todavía.");
           btnSync.textContent = labelOriginal; btnSync.disabled = false;
           return;
         }
-        // Para cada marcador, buscar la fila correspondiente en el modal por nombre de equipo
-        var rellenados = 0;
-        var trs = tbody.querySelectorAll("tr[data-rowkey]");
-        marcadores.forEach(function(p){
-          // Determinar qué equipo es Kolbe y qué marcador le toca
+
+        var rellenados = 0, aplazados = 0, sinMatch = [];
+
+        partidosKolbe.forEach(function(p){
           var eq1Up = (p.eq1||"").toUpperCase().trim();
-          var eq2Up = (p.eq2||"").toUpperCase().trim();
           var kolbeEsLocal = eq1Up.indexOf("KOLBE") !== -1;
-          if(!kolbeEsLocal && eq2Up.indexOf("KOLBE") === -1) return; // no es Kolbe
-          var equipoKolbe = kolbeEsLocal ? eq1Up : eq2Up;
-          // Buscar la fila cuyo equipo coincide. KOLBE_EQUIPOS guarda el nombre estilo "CD KOLBE 1º BLANCO"
-          // que coincide con el de Clupik en mayúsculas.
-          for(var i=0; i<trs.length; i++){
-            var rk = trs[i].getAttribute("data-rowkey");
-            // rk = "FS_CD KOLBE 1º BLANCO_Prebenjamín"
-            var partes = rk.split("_");
-            var equipoFila = (partes[1]||"").toUpperCase().trim();
-            // Quitar "CD KOLBE" del label si existe (algunas filas son "CD KOLBE INFANTIL" sin equipo en KOLBE_EQUIPOS)
-            // Comparación tolerante: el equipo de Clupik debe estar contenido en el de la fila (o viceversa)
-            if(equipoKolbe && (equipoFila === equipoKolbe || equipoFila.indexOf(equipoKolbe) !== -1 || equipoKolbe.indexOf(equipoFila) !== -1)){
-              var inp = trs[i].querySelector("input[type=text]");
-              if(inp && !inp.disabled){
-                // Marcador en formato "Kolbe-Rival" desde la perspectiva de Kolbe
-                var golesKolbe = kolbeEsLocal ? p.home_score : p.away_score;
-                var golesRival = kolbeEsLocal ? p.away_score : p.home_score;
-                if(golesKolbe != null && golesRival != null){
-                  inp.value = golesKolbe + "-" + golesRival;
-                  inp.dispatchEvent(new Event("input", { bubbles: true }));
-                  rellenados++;
-                }
-              }
-              break;
+          var equipoKolbeNorm = _normalizaNombreEquipo(kolbeEsLocal ? p.eq1 : p.eq2);
+          var catApi = _categoriaDesdeComp(p.comp || "");
+
+          // 1. Buscar candidatas con matching de nombre tolerante (todas las que coincidan)
+          var candidatas = filasIndexadas.filter(function(f){
+            if(f.usada) return false;
+            if(!f.input || f.input.disabled) return false;
+            return f.equipoNorm === equipoKolbeNorm
+                || f.equipoNorm.indexOf(equipoKolbeNorm) !== -1
+                || equipoKolbeNorm.indexOf(f.equipoNorm) !== -1;
+          });
+
+          // 2. Si hay varias candidatas, desambiguar por categoría (extraída del nombre de la liga)
+          if(candidatas.length > 1 && catApi){
+            var porCategoria = candidatas.filter(function(f){ return f.catNorm === catApi; });
+            if(porCategoria.length) candidatas = porCategoria;
+          }
+
+          // 3. Si sigue habiendo varias, desambiguar por disciplina (FS vs F7)
+          if(candidatas.length > 1){
+            var compUp = (p.comp||"").toUpperCase();
+            var discApi = (compUp.indexOf("F-7")!==-1 || compUp.indexOf("F7")!==-1) ? "F7"
+                        : (compUp.indexOf("SALA")!==-1 || compUp.indexOf("FS")!==-1) ? "FS" : "";
+            if(discApi){
+              var porDisc = candidatas.filter(function(f){ return f.disc === discApi; });
+              if(porDisc.length) candidatas = porDisc;
             }
           }
+
+          if(!candidatas.length){
+            sinMatch.push((kolbeEsLocal ? p.eq1 : p.eq2) + " (" + (p.comp||"") + ")");
+            return;
+          }
+          var f = candidatas[0]; // tras desambiguar, cogemos la primera
+          f.usada = true;
+
+          if(p.postponed){
+            f.input.value = "APLAZADO";
+            f.input.dispatchEvent(new Event("input", { bubbles: true }));
+            aplazados++;
+            return;
+          }
+
+          // Partido jugado: escribir como "local-visitante" (para que _autoIcono funcione bien)
+          if(p.home_score != null && p.away_score != null){
+            f.input.value = p.home_score + "-" + p.away_score;
+            f.input.dispatchEvent(new Event("input", { bubbles: true }));
+            rellenados++;
+          }
         });
-        btnSync.textContent = "✓ " + rellenados + " sincronizados";
+
+        var resumen = "✓ " + rellenados + " resultados";
+        if(aplazados) resumen += " · " + aplazados + " aplazados";
+        if(sinMatch.length) resumen += " · " + sinMatch.length + " sin emparejar";
+        btnSync.textContent = resumen;
         btnSync.style.background = "var(--verde2,#2d6a4f)";
-        setTimeout(function(){ btnSync.textContent = labelOriginal; btnSync.style.background = "var(--verde)"; btnSync.disabled = false; }, 2500);
+        if(sinMatch.length){
+          console.warn("Sync sin emparejar:", sinMatch);
+        }
+        setTimeout(function(){ btnSync.textContent = labelOriginal; btnSync.style.background = "var(--verde)"; btnSync.disabled = false; }, 3000);
       })
       .catch(function(err){
         console.error("Sync clupik:", err);
@@ -4412,6 +4499,7 @@ function resumenKolbeResultados(){
       if(r.disc !== lastD){ lastD = r.disc; txt += "\n" + (r.disc==="FS" ? "⚽ *FÚTBOL SALA*" : "⚽ *FÚTBOL 7*") + "\n"; }
       txt += "\n📋 *" + r.equipo + "* (" + r.categoria + ") · " + r.entrenador + "\n";
       if(r.partido === "🟡 DESCANSO"){ txt += "🟡 Descanso\n"; }
+      else if(/APLAZAD|POSTPONED/i.test(r.resultado||"")){ txt += r.partido + "\n📌 Aplazado\n"; }
       else { txt += r.partido + "\n" + (r.icono ? r.icono + " " : "") + (r.resultado || "—") + "\n"; }
     });
     var ta = document.createElement("textarea");
