@@ -4569,13 +4569,25 @@ function resumenKolbeResultados(){
           return;
         }
 
-        var rellenados = 0, aplazados = 0, sinMatch = [];
+        var rellenados = 0, aplazados = 0, sinMatch = [], saltadosVoleibol = 0;
 
         partidosKolbe.forEach(function(p){
+          var compUp = (p.comp||"").toUpperCase();
+
+          // ⚠️ FILTRO 1 — saltar voleibol: la modal aún no tiene filas de voleibol,
+          // y los equipos voleibol comparten nombres con F7/FS (CD KOLBE BLANCO, etc.).
+          // Si los aceptamos, contaminan los marcadores reales de F7.
+          if(compUp.indexOf("VOLEIBOL") !== -1 || compUp.indexOf("VOLLEY") !== -1){
+            saltadosVoleibol++;
+            return;
+          }
+
           var eq1Up = (p.eq1||"").toUpperCase().trim();
           var kolbeEsLocal = eq1Up.indexOf("KOLBE") !== -1;
           var equipoKolbeNorm = _normalizaNombreEquipo(kolbeEsLocal ? p.eq1 : p.eq2);
           var catApi = _categoriaDesdeComp(p.comp || "");
+          var discApi = (compUp.indexOf("F-7")!==-1 || compUp.indexOf("F7")!==-1) ? "F7"
+                      : (compUp.indexOf("SALA")!==-1 || /\bFS\b/.test(compUp)) ? "FS" : "";
 
           // 1. Buscar candidatas con matching de nombre tolerante (todas las que coincidan)
           var candidatas = filasIndexadas.filter(function(f){
@@ -4586,21 +4598,19 @@ function resumenKolbeResultados(){
                 || equipoKolbeNorm.indexOf(f.equipoNorm) !== -1;
           });
 
-          // 2. Si hay varias candidatas, desambiguar por categoría (extraída del nombre de la liga)
-          if(candidatas.length > 1 && catApi){
+          // 2. Filtro ESTRICTO por categoría: si la API trae categoría y NINGUNA fila
+          //    coincide en categoría, se salta este match (no caer en una fila incorrecta).
+          if(catApi && candidatas.length){
             var porCategoria = candidatas.filter(function(f){ return f.catNorm === catApi; });
             if(porCategoria.length) candidatas = porCategoria;
+            else candidatas = [];   // estricto: si la API dice CADETE y no hay fila CADETE, saltamos
           }
 
-          // 3. Si sigue habiendo varias, desambiguar por disciplina (FS vs F7)
-          if(candidatas.length > 1){
-            var compUp = (p.comp||"").toUpperCase();
-            var discApi = (compUp.indexOf("F-7")!==-1 || compUp.indexOf("F7")!==-1) ? "F7"
-                        : (compUp.indexOf("SALA")!==-1 || compUp.indexOf("FS")!==-1) ? "FS" : "";
-            if(discApi){
-              var porDisc = candidatas.filter(function(f){ return f.disc === discApi; });
-              if(porDisc.length) candidatas = porDisc;
-            }
+          // 3. Filtro ESTRICTO por disciplina: igual que con categoría.
+          if(discApi && candidatas.length){
+            var porDisc = candidatas.filter(function(f){ return f.disc === discApi; });
+            if(porDisc.length) candidatas = porDisc;
+            else candidatas = [];
           }
 
           if(!candidatas.length){
@@ -4628,10 +4638,14 @@ function resumenKolbeResultados(){
         var resumen = "✓ " + rellenados + " resultados";
         if(aplazados) resumen += " · " + aplazados + " aplazados";
         if(sinMatch.length) resumen += " · " + sinMatch.length + " sin emparejar";
+        if(saltadosVoleibol) resumen += " · " + saltadosVoleibol + " voleibol";
         btnSync.textContent = resumen;
         btnSync.style.background = "var(--verde2,#2d6a4f)";
         if(sinMatch.length){
           console.warn("Sync sin emparejar:", sinMatch);
+        }
+        if(saltadosVoleibol){
+          console.info("Sync: " + saltadosVoleibol + " partidos de voleibol omitidos (la modal aún no soporta VB).");
         }
         setTimeout(function(){ btnSync.textContent = labelOriginal; btnSync.style.background = "var(--verde)"; btnSync.disabled = false; }, 3000);
       })
