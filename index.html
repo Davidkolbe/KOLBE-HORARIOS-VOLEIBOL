@@ -4153,12 +4153,21 @@ function resumenKolbeResultados(){
 
   var semana = document.getElementById("semana-label").textContent.replace("Semana del ","") || "";
   var STORAGE_KEY = "kolbe_resumen_resultados_" + semana;
+  var STORAGE_KEY_HORARIOS = "kolbe_resumen_edits_" + semana;
 
-  // Cargar ediciones guardadas
+  // Cargar ediciones guardadas (resultados)
   try {
     var saved = localStorage.getItem(STORAGE_KEY);
     window._resultadosEdits = saved ? JSON.parse(saved) : {};
   } catch(e){ window._resultadosEdits = {}; }
+
+  // Cargar ediciones del modal HORARIOS — para los federados FS (sin equipo en KOLBE_EQUIPOS),
+  // si David rellenó a mano el partido en el modal de horarios, lo copiamos aquí.
+  var horariosEdits = {};
+  try {
+    var savedHor = localStorage.getItem(STORAGE_KEY_HORARIOS);
+    horariosEdits = savedHor ? JSON.parse(savedHor) : {};
+  } catch(e){ horariosEdits = {}; }
 
   // Encontrar partidos Kolbe (mismo criterio que resumenKolbe)
   var kolbePs = partidos.filter(function(p){
@@ -4185,15 +4194,52 @@ function resumenKolbeResultados(){
     }
 
     var displayLabel = ke.label || ke.equipo;
+    var rk = (ke.disc||"") + "_" + displayLabel + "_" + (ke.categoria||"");
+
+    // Helper: si hay edición manual del partido en el modal HORARIOS para esta fila,
+    // construir un _p sintético para que el auto-icono sepa si Kolbe es local o visitante.
+    function rowDesdeHorarioEdit(){
+      var ed = horariosEdits[rk];
+      if(!ed || !ed.partido) return null;
+      var partidoTxt = String(ed.partido).trim();
+      // Aceptar valores no útiles (DESCANSO, vacío, "—")
+      if(!partidoTxt || partidoTxt === "—" || /DESCANSO/i.test(partidoTxt)) return null;
+      // Detectar condicion y rival a partir del texto editado
+      var esLocal = partidoTxt.indexOf("🏠") !== -1;
+      var esVisit = partidoTxt.indexOf("✈️") !== -1;
+      // _p sintético: solo lo justo para que _autoIcono sepa el lado de Kolbe
+      var pSint = esLocal ? { eq1: "CD KOLBE", eq2: partidoTxt }
+                          : { eq1: partidoTxt, eq2: "CD KOLBE" };
+      return {
+        equipo: displayLabel,
+        categoria: ke.categoria||"",
+        entrenador: ed.entrenador || ke.entrenador,
+        disc: ke.disc,
+        partido: partidoTxt,
+        resultado: "—",
+        icono: "",
+        _p: pSint,
+        _esEditadoManual: true,
+      };
+    }
+
     if(p){
       var rival2 = (p.eq2||"").trim();
       var eq2IsNan = !rival2 || rival2.toLowerCase()==="nan" || rival2==="";
       var isDescanso = rival2.toUpperCase().includes("DESCANSO") || (p.eq1||"").toUpperCase().includes("DESCANSO");
       if(isDescanso || eq2IsNan){
+        // Si está marcado como descanso por la API pero hay edición manual del horario, prefiérela
+        var fromHor = rowDesdeHorarioEdit();
+        if(fromHor) return fromHor;
         return {equipo: displayLabel, categoria: ke.categoria||"", entrenador: ke.entrenador, disc: ke.disc, partido:"🟡 DESCANSO", resultado:"—", icono:"", _p: null};
       }
     }
-    if(!p) return {equipo: displayLabel, categoria: ke.categoria||"", entrenador: ke.entrenador, disc: ke.disc, partido:"🟡 DESCANSO", resultado:"—", icono:"", _p: null};
+    if(!p){
+      // Federados FS / equipos sin partido en partidos[]: comprobar si hay edición manual del horario
+      var fromHor2 = rowDesdeHorarioEdit();
+      if(fromHor2) return fromHor2;
+      return {equipo: displayLabel, categoria: ke.categoria||"", entrenador: ke.entrenador, disc: ke.disc, partido:"🟡 DESCANSO", resultado:"—", icono:"", _p: null};
+    }
 
     var esLocal = (p.eq1||"").toUpperCase().includes("KOLBE");
     var rival = esLocal ? p.eq2 : p.eq1;
