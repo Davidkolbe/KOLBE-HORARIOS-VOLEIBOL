@@ -3901,6 +3901,55 @@ function resumenKolbe(){
   waBtnRow.appendChild(mkBtnWA("📱 Vertical (chat)", "portrait"));
   waBtnRow.appendChild(mkBtnWA("📖 Story (estado)", "story"));
 
+  // Botón especial: copiar imagen al portapapeles (luego Cmd+V en WhatsApp Web)
+  function mkBtnClip(label, format){
+    var b = document.createElement("button");
+    b.textContent = label;
+    b.style.cssText = "margin-top:1rem;margin-left:8px;padding:8px 14px;background:#fff;color:#1da851;border:2px solid #1da851;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--f)";
+    b.addEventListener("click", function(){
+      var tableRows = tbody.querySelectorAll("tr[data-rowkey]");
+      var editedRows = {};
+      tableRows.forEach(function(tr){
+        var rk = tr.getAttribute("data-rowkey");
+        var cells = tr.querySelectorAll("span");
+        if(cells.length >= 6){
+          editedRows[rk] = {
+            equipo: cells[0].textContent, categoria: cells[1].textContent, entrenador: cells[2].textContent,
+            partido: cells[3].textContent, campo: cells[4].textContent, horario: cells[5].textContent,
+          };
+        }
+      });
+      var rowsIG = rows.map(function(r){
+        var rk = r.disc + "_" + r.equipo + "_" + r.categoria;
+        var d = editedRows[rk] || {};
+        return {
+          disc: r.disc,
+          equipo:     d.equipo     || r.equipo,
+          categoria:  d.categoria  || r.categoria,
+          entrenador: d.entrenador || r.entrenador,
+          partido:    d.partido    || r.partido,
+          campo:      d.campo      || r.campo,
+          horario:    d.horario    || r.horario,
+        };
+      });
+      var labelOriginal = b.textContent;
+      b.textContent = "⏳ Generando…"; b.disabled = true;
+      exportarInstagramKolbe(format, semana, rowsIG, "horarios", {
+        toClipboard: true, mimeType: "image/png"
+      }).then(function(){
+        b.textContent = "✓ Copiado · ahora Cmd+V en WhatsApp";
+        b.style.background = "#1da851"; b.style.color = "#fff";
+        setTimeout(function(){ b.textContent = labelOriginal; b.style.background = "#fff"; b.style.color = "#1da851"; b.disabled = false; }, 4000);
+      }).catch(function(err){
+        console.error(err);
+        alert("No se pudo copiar al portapapeles: " + (err && err.message || err) + "\n\nUsa los botones de descarga como alternativa.");
+        b.textContent = labelOriginal; b.disabled = false;
+      });
+    });
+    return b;
+  }
+  waBtnRow.appendChild(mkBtnClip("📋 Copiar al portapapeles", "portrait"));
+
   wrapper.appendChild(btnCerrar);
   wrapper.appendChild(titulo);
   wrapper.appendChild(table);
@@ -4147,8 +4196,31 @@ function exportarInstagramKolbe(format, semana, rowsIG, kind, opts){
       width: DIMS.w, height: DIMS.h, windowWidth: DIMS.w, windowHeight: DIMS.h,
       scale: 1, backgroundColor: "#ffffff", useCORS: true, logging: false,
     }).then(function(canvas){
-      return new Promise(function(resolve){
+      return new Promise(function(resolve, reject){
         canvas.toBlob(function(blob){
+          // Modo "Copiar al portapapeles": meter la imagen en el clipboard del SO.
+          // Solo PNG funciona en navigator.clipboard.write (en JPG da error).
+          if(opts.toClipboard){
+            try {
+              if(!navigator.clipboard || !window.ClipboardItem){
+                c.remove();
+                reject(new Error("Tu navegador no soporta copiar imágenes al portapapeles. Usa los botones de descarga."));
+                return;
+              }
+              navigator.clipboard.write([new ClipboardItem({"image/png": blob})]).then(function(){
+                c.remove();
+                resolve();
+              }).catch(function(err){
+                c.remove();
+                reject(err);
+              });
+            } catch(err){
+              c.remove();
+              reject(err);
+            }
+            return;
+          }
+          // Modo "descargar"
           var url = URL.createObjectURL(blob);
           var a = document.createElement("a");
           var slug = (semana || "").replace(/[^0-9A-Za-z\-]/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"") || "jornada";
