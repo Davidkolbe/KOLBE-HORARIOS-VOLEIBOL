@@ -2206,7 +2206,7 @@ function exportarPDF(){
     ["Lunes","Martes","Miercoles","Jueves","Viernes","Sabado","Domingo"].forEach(function(dia){
       const psDia = ps.filter(function(p){ return p.dia===dia; });
       if(!psDia.length) return;
-      filas += `<tr><td colspan="6" style="background:#f4f4f2;color:#5c5c57;padding:4px 12px;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase">${dia==="Viernes"?"Viernes":"Sábado"}</td></tr>`;
+      filas += `<tr><td colspan="6" style="background:#f4f4f2;color:#5c5c57;padding:4px 12px;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase">${_diaLargo(dia)}</td></tr>`;
       psDia.sort(function(a,b){
         if(a.sinHora&&!b.sinHora) return 1;
         if(!a.sinHora&&b.sinHora) return -1;
@@ -3581,7 +3581,7 @@ function resumenKolbe(){
     var rival = esLocal ? p.eq2 : p.eq1;
     var condicion = esLocal ? "🏠" : "✈️";
     var hora = p.aplazado ? "📌 APLAZADO" : p.sinHora ? "Sin hora" : p.hora+"h";
-    var dia = p.dia === "Viernes" ? "Vie" : "Sáb";
+    var dia = _diaCorto(p.dia);
     var campo = p.campo || p.campoOriginal || "—";
 
     var displayLabel = ke.label || ke.equipo;
@@ -4777,7 +4777,7 @@ function vistaCategorias(){
     ["Lunes","Martes","Miercoles","Jueves","Viernes","Sabado","Domingo"].forEach(function(dia){
       const psDia = ps.filter(function(p){ return p.dia===dia; });
       if(!psDia.length) return;
-      msg += "📅 " + (dia==="Viernes"?"Viernes":"Sábado") + "\n";
+      msg += "📅 " + _diaLargo(dia) + "\n";
       psDia.forEach(function(p){
         const hora = p.aplazado ? "📌 APLAZADO" : p.sinHora ? "Sin hora" : p.hora+"h";
         const campoDirKey = p.campo || p.campoOriginal;
@@ -6121,6 +6121,15 @@ function _recalcularFechaDePartido(p){
     }
   } catch(e){}
   return false;
+}
+
+
+// ---- Helpers de display de día de la semana ----
+function _diaCorto(d){
+  return ({Lunes:"Lun",Martes:"Mar",Miercoles:"Mié","Miércoles":"Mié",Jueves:"Jue",Viernes:"Vie",Sabado:"Sáb","Sábado":"Sáb",Domingo:"Dom"})[d] || d || "";
+}
+function _diaLargo(d){
+  return ({Lunes:"Lunes",Martes:"Martes",Miercoles:"Miércoles","Miércoles":"Miércoles",Jueves:"Jueves",Viernes:"Viernes",Sabado:"Sábado","Sábado":"Sábado",Domingo:"Domingo"})[d] || d || "";
 }
 
 var _DIA_A_OFFSET_ARREGLAR = {
