@@ -164,13 +164,19 @@ module.exports = async (req, res) => {
     });
 
     // Filtrar por disciplina si viene especificado.
-    // Si el nombre del torneo no permite detectar la disciplina (ej. "COPA CADETE/JUVENIL"),
-    // dejamos pasar el torneo en vez de descartarlo: es preferible mostrar partidos
-    // de mas que ocultarlos por un nombre poco descriptivo.
+    // En la app voleibol queremos ESTRICTO: si el nombre no contiene "voleibol"/"volley",
+    // descartar. Ej.: "COPA CADETE/JUVENIL" en Clupik manager de CDK siempre es fútbol,
+    // no debe colarse en una app voleibol.
+    // En apps fútbol (f7/fs) se mantiene la lógica permisiva (dejar pasar nombres
+    // poco descriptivos) porque es preferible ver de más que perder partidos.
     if (discFilter) {
+      const strictVoleibol = discFilter.has('voleibol') && !discFilter.has('f7') && !discFilter.has('fs');
       active = active.filter((t) => {
         const d = detectDiscipline(pick(t.attributes, 'name', 'nombre') || '');
-        if (!d) return true;  // disciplina desconocida: no filtrar
+        if (!d) {
+          // disciplina desconocida → estricto si es solo voleibol; permisivo en fútbol
+          return !strictVoleibol;
+        }
         return discFilter.has(d);
       });
     }

@@ -196,11 +196,14 @@ module.exports = async (req, res) => {
       const status = (pick(t.attributes, 'status', 'estado') || '').toLowerCase();
       return ACTIVE_STATUSES.has(status);
     });
-    // Filtrar por disciplina si viene especificado
+    // Filtrar por disciplina si viene especificado.
+    // App voleibol estricta: si no detecta voleibol/volley, descartar (evita partidos
+    // de fútbol con nombre ambiguo tipo "COPA CADETE/JUVENIL").
     if (discFilter) {
+      const strictVoleibol = discFilter.has('voleibol') && !discFilter.has('f7') && !discFilter.has('fs');
       active = active.filter((t) => {
         const d = detectDiscipline(pick(t.attributes, 'name', 'nombre') || '');
-        if (!d) return true;  // disciplina desconocida: dejar pasar
+        if (!d) return !strictVoleibol;
         return discFilter.has(d);
       });
     }
