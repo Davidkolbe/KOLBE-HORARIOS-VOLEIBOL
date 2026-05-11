@@ -292,6 +292,7 @@ body{font-family:var(--f);background:var(--gris1);color:var(--negro);font-size:1
         <button class="btn btn-verde btn-sm" onclick="resumenKolbe()">🟢 Resumen Kolbe partidos</button>
         <button class="btn btn-verde btn-sm" onclick="resumenKolbeResultados()" title="Tras los partidos del fin de semana: tabla de resultados con export a Instagram">🏆 Resultados Kolbe</button>
         <button class="btn btn-verde btn-sm" onclick="asistenteEnvios()" title="Preparar envíos de domingo, lunes y miércoles">📤 Envíos semana</button>
+        <button class="btn btn-outline btn-sm" id="btn-asignar-sedes" onclick="abrirModalSedes()" title="Asigna pabellón a las sedes de Clupik que vienen sin nombre (facility_id)">🏟️ Sedes</button>
         <button class="btn btn-outline btn-sm" id="btn-link-clupik" onclick="vincularConClupik()" style="display:none" title="Empareja esta jornada con los partidos de Clupik para poder guardar cambios">🔗 Vincular con Clupik</button>
         <button class="btn btn-verde btn-sm" id="btn-save-clupik" onclick="guardarCambiosEnClupik()" style="display:none" title="Envía los cambios de horario a Clupik">☁️ Guardar en Clupik</button>
       </div>
@@ -483,6 +484,32 @@ const FACILITY_ID_MAP = {
   "66104": "Pista Exterior Infanta Cristina",
   "73417": "Pista Kolbe Secundaria",
 };
+
+// Mapeo dinámico facility_id → campo que aprende del usuario.
+// Cuando David asigna un campo manualmente a un partido con facility_id,
+// se guarda aquí para que en jornadas futuras se autoaplique sin intervención.
+function _getFacilityUserMap(){
+  try { return JSON.parse(localStorage.getItem("kolbe_facility_user_map") || "{}") || {}; }
+  catch(e){ return {}; }
+}
+function _setFacilityUserMap(map){
+  try { localStorage.setItem("kolbe_facility_user_map", JSON.stringify(map || {})); }
+  catch(e){}
+}
+function _learnFacility(facId, campo){
+  if(!facId || !campo || campo === "Sin campo") return;
+  var map = _getFacilityUserMap();
+  if(map[String(facId)] === campo) return;
+  map[String(facId)] = campo;
+  _setFacilityUserMap(map);
+}
+function _resolveFacilityId(facId){
+  if(!facId) return null;
+  var user = _getFacilityUserMap();
+  if(user[String(facId)]) return user[String(facId)];
+  if(FACILITY_ID_MAP[String(facId)]) return FACILITY_ID_MAP[String(facId)];
+  return null;
+}
 
 const CATEG_MAP = {
   "PREBENJAMIN":"Prebenjamín","PREBENJAMÍN":"Prebenjamín",
@@ -1531,8 +1558,9 @@ function repararCamposSinCampo(lista){
       if(_lug) nuevo = lugarACampo(_lug);
       // 2) FACILITY_ID_MAP si hay facility_id conocido
       var _fid = p && (p.facility_id_clupik || p.facility_id);
-      if(!nuevo && _fid && FACILITY_ID_MAP[_fid]){
-        nuevo = FACILITY_ID_MAP[_fid];
+      var _facCampo = _fid ? _resolveFacilityId(_fid) : null;
+      if(!nuevo && _facCampo){
+        nuevo = _facCampo;
       }
       // 3) inferir por equipo local (historico + match por nombre)
       if(!nuevo && p) nuevo = inferirCampoPorEquipoLocal(p.eq1);
@@ -4944,6 +4972,185 @@ function vistaCategorias(){
   document.body.appendChild(overlay);
 }
 
+// ============ ASIGNAR SEDES (mapeo facility_id → campo) ============
+// Lista de pabellones voleibol conocidos para sugerencias en el modal.
+// Estos son los pabellones donde juegan los rivales habituales del CD Kolbe.
+const PABELLONES_SUGERIDOS_VB = [
+  "PISTA 1 C.I. Kolbe",
+  "PISTA 2 C.I. Kolbe",
+  "Pista 2 Polideportivo UCJC",
+  "Pista 3 Polideportivo UCJC",
+  "Pabellón Avengers (Pozuelo)",
+  "Pabellón SEK El Castillo",
+  "Pabellón Quercus (Boadilla)",
+  "Pabellón Everest (Pozuelo)",
+  "Pabellón Hélade",
+  "Pabellón Padre Garralda (Vva. Cañada)",
+  "Pabellón Highlands School Los Fresnos",
+  "Pabellón St. Michael's School",
+  "Pabellón ABV Boadilla",
+  "Pabellón Colegio Arcadia",
+  "Pabellón Colegio Zola",
+  "Pabellón CV Bulldogs",
+];
+
+function abrirModalSedes(){
+  // Agrupar partidos por facility_id_clupik (solo los que tienen ID pero el campo está vacío o no resuelto)
+  var grupos = {};   // fid -> { partidos: [...], campoActual: string }
+  (partidos || []).forEach(function(p){
+    var fid = p.facility_id_clupik;
+    if(!fid) return;
+    if(p.campo && p.campo !== "Sin campo") return;   // ya tiene campo asignado, no incluir
+    if(!grupos[fid]) grupos[fid] = { partidos: [], lugarClupik: p.lugar_clupik || "" };
+    grupos[fid].partidos.push(p);
+  });
+
+  // También incluir facility_ids que YA están en el user map (para poder editarlos)
+  var userMap = _getFacilityUserMap();
+
+  var fids = Object.keys(grupos);
+
+  // Overlay
+  var overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1rem";
+  overlay.addEventListener("click", function(e){ if(e.target === overlay) overlay.remove(); });
+
+  var wrapper = document.createElement("div");
+  wrapper.style.cssText = "background:#fff;border-radius:var(--rl);padding:1.5rem;max-width:780px;width:100%;max-height:90vh;overflow:auto;position:relative;font-family:var(--f)";
+
+  var titulo = document.createElement("div");
+  titulo.innerHTML = '<div style="font-size:18px;font-weight:700;color:var(--verde);margin-bottom:.25rem">🏟️ Asignar sedes a partidos sin campo</div>' +
+                     '<div style="font-size:12px;color:var(--gris5);margin-bottom:1rem">Clupik devuelve un ID interno pero no el nombre del pabellón. Asigna cada sede una vez — la app aprenderá y la próxima jornada las autorellenará.</div>';
+  wrapper.appendChild(titulo);
+
+  if(!fids.length){
+    var vacio = document.createElement("div");
+    vacio.style.cssText = "padding:2rem;text-align:center;color:var(--gris4);background:var(--gris1);border-radius:var(--r);border:1px dashed var(--gris3)";
+    vacio.innerHTML = '✓ Todos los partidos tienen campo asignado. <br><br><span style="font-size:12px">Si en el futuro un partido viene "Sin campo", aparecerá aquí.</span>';
+    wrapper.appendChild(vacio);
+  } else {
+    // Lista de grupos
+    fids.forEach(function(fid){
+      var g = grupos[fid];
+      var card = document.createElement("div");
+      card.style.cssText = "border:1px solid var(--gris3);border-radius:var(--r);padding:1rem;margin-bottom:.75rem;background:var(--gris1)";
+
+      var header = document.createElement("div");
+      var subYa = userMap[String(fid)] ? '<span style="color:var(--verde);font-size:11px;margin-left:.5rem">✓ Mapeado actualmente: ' + userMap[String(fid)] + '</span>' : '';
+      header.innerHTML = '<div style="font-size:13px;font-weight:600;color:var(--negro)">Sede ID #' + fid + ' · ' + g.partidos.length + ' partido' + (g.partidos.length > 1 ? 's' : '') + subYa + '</div>';
+      card.appendChild(header);
+
+      // Lista breve de partidos
+      var lista = document.createElement("div");
+      lista.style.cssText = "font-size:11px;color:var(--gris5);margin:.5rem 0 .75rem;line-height:1.4";
+      var muestras = g.partidos.slice(0, 5).map(function(p){
+        return p.fecha + " " + (p.hora || "—") + " · " + (p.eq1 || "?") + " vs " + (p.eq2 || "?") + " (" + (p.comp || "") + ")";
+      }).join("<br>");
+      if(g.partidos.length > 5) muestras += "<br>...y " + (g.partidos.length - 5) + " más";
+      lista.innerHTML = muestras;
+      card.appendChild(lista);
+
+      // Selector + input
+      var fila = document.createElement("div");
+      fila.style.cssText = "display:flex;gap:.5rem;align-items:center;flex-wrap:wrap";
+      var sel = document.createElement("select");
+      sel.style.cssText = "flex:1;min-width:260px;padding:6px 10px;border:1px solid var(--gris3);border-radius:var(--r);font-family:var(--f);font-size:13px";
+      sel.innerHTML = '<option value="">— Elige pabellón —</option>' +
+                      PABELLONES_SUGERIDOS_VB.map(function(p){ return '<option value="' + p + '"' + (userMap[String(fid)] === p ? ' selected' : '') + '>' + p + '</option>'; }).join("") +
+                      '<option value="__otro__">Otro (escribir nombre)…</option>';
+
+      var inpLibre = document.createElement("input");
+      inpLibre.type = "text";
+      inpLibre.placeholder = "Nombre del pabellón";
+      inpLibre.style.cssText = "flex:1;min-width:200px;padding:6px 10px;border:1px solid var(--gris3);border-radius:var(--r);font-family:var(--f);font-size:13px;display:none";
+      // Si está mapeado a algo que no está en la lista, mostrar input libre con ese valor
+      if(userMap[String(fid)] && PABELLONES_SUGERIDOS_VB.indexOf(userMap[String(fid)]) === -1){
+        sel.value = "__otro__";
+        inpLibre.style.display = "block";
+        inpLibre.value = userMap[String(fid)];
+      }
+
+      sel.addEventListener("change", function(){
+        if(sel.value === "__otro__"){ inpLibre.style.display = "block"; inpLibre.focus(); }
+        else { inpLibre.style.display = "none"; }
+      });
+
+      var btnAplicar = document.createElement("button");
+      btnAplicar.textContent = "Aplicar a " + g.partidos.length;
+      btnAplicar.className = "btn btn-verde btn-sm";
+      btnAplicar.style.cssText = "padding:6px 14px";
+      btnAplicar.addEventListener("click", function(){
+        var nombre = sel.value === "__otro__" ? inpLibre.value.trim() : sel.value;
+        if(!nombre){ alert("Elige o escribe un nombre."); return; }
+        // 1) Guardar mapping
+        _learnFacility(fid, nombre);
+        // 2) Aplicar a TODOS los partidos con ese facility_id (no solo los del modal)
+        var aplicados = 0;
+        (partidos || []).forEach(function(p){
+          if(String(p.facility_id_clupik) === String(fid)){
+            if(!p.campo || p.campo === "Sin campo"){
+              p.campo = nombre;
+              aplicados++;
+            }
+          }
+        });
+        // 3) Persistir + repintar
+        try { savePartidos(); } catch(e){}
+        try { renderTodo(); } catch(e){}
+        btnAplicar.textContent = "✓ " + aplicados + " aplicados";
+        btnAplicar.disabled = true;
+        setTimeout(function(){ card.style.opacity = "0.55"; }, 200);
+      });
+
+      fila.appendChild(sel);
+      fila.appendChild(inpLibre);
+      fila.appendChild(btnAplicar);
+      card.appendChild(fila);
+      wrapper.appendChild(card);
+    });
+  }
+
+  // Mostrar también mappings ya aprendidos (para poder revisarlos / borrarlos)
+  var mappingsActivos = Object.keys(userMap);
+  if(mappingsActivos.length){
+    var hr = document.createElement("hr");
+    hr.style.cssText = "margin:1.5rem 0 1rem;border:none;border-top:1px solid var(--gris3)";
+    wrapper.appendChild(hr);
+    var subt = document.createElement("div");
+    subt.innerHTML = '<div style="font-size:13px;font-weight:600;color:var(--gris5);margin-bottom:.5rem">📋 Mapeos guardados (' + mappingsActivos.length + ')</div>' +
+                     '<div style="font-size:11px;color:var(--gris5);margin-bottom:.5rem">Estos mappings se autoaplicarán cada vez que importes partidos.</div>';
+    wrapper.appendChild(subt);
+    mappingsActivos.forEach(function(fid){
+      var fila = document.createElement("div");
+      fila.style.cssText = "display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--verde-s);border-radius:4px;margin-bottom:4px;font-size:12px";
+      fila.innerHTML = '<span><b>#' + fid + '</b> → ' + userMap[fid] + '</span>';
+      var btnDel = document.createElement("button");
+      btnDel.textContent = "✕";
+      btnDel.style.cssText = "background:none;border:none;color:var(--rojo);cursor:pointer;font-size:14px;padding:0 6px";
+      btnDel.title = "Borrar este mapeo";
+      btnDel.addEventListener("click", function(){
+        if(!confirm("Borrar el mapeo de #" + fid + " (" + userMap[fid] + ")?")) return;
+        var m = _getFacilityUserMap();
+        delete m[fid];
+        _setFacilityUserMap(m);
+        overlay.remove();
+        abrirModalSedes();
+      });
+      fila.appendChild(btnDel);
+      wrapper.appendChild(fila);
+    });
+  }
+
+  var btnCerrar = document.createElement("button");
+  btnCerrar.textContent = "✕ Cerrar";
+  btnCerrar.style.cssText = "position:absolute;top:1rem;right:1rem;padding:6px 12px;border:1px solid var(--gris3);border-radius:var(--r);background:transparent;cursor:pointer;font-size:13px";
+  btnCerrar.addEventListener("click", function(){ overlay.remove(); });
+
+  wrapper.appendChild(btnCerrar);
+  overlay.appendChild(wrapper);
+  document.body.appendChild(overlay);
+}
+
 // ============ NUEVO PARTIDO MANUAL ============
 function modalNuevoPartido(){
   const CATS = ["","Prebenjamín","Benjamín","Alevín","Infantil","Cadete/Juvenil"];
@@ -5229,7 +5436,7 @@ async function importarSemanaClupik(){
       // 1) intentar mapear el lugar que nos da Clupik
       // 2) si Clupik no trae lugar (o no se reconoce), inferir por el equipo local usando histórico
       var campo = lugarACampo(p.lugar || "");
-      if(!campo && p.facility_id && FACILITY_ID_MAP[p.facility_id]) campo = FACILITY_ID_MAP[p.facility_id];
+      if(!campo && p.facility_id) campo = _resolveFacilityId(p.facility_id);
       if(!campo) campo = inferirCampoPorEquipoLocal(p.eq1) || "Sin campo";
       if(campo === "Sin campo"){
         console.warn("[Clupik] Partido sin campo tras import:", {
@@ -5361,7 +5568,7 @@ async function importarTorneoClupik(tournamentId){
 
     const nuevos = data.partidos.map(function(p, i){
       var campo = lugarACampo(p.lugar || "");
-      if(!campo && p.facility_id && FACILITY_ID_MAP[p.facility_id]) campo = FACILITY_ID_MAP[p.facility_id];
+      if(!campo && p.facility_id) campo = _resolveFacilityId(p.facility_id);
       if(!campo) campo = inferirCampoPorEquipoLocal(p.eq1) || "Sin campo";
       if(campo === "Sin campo"){
         console.warn("[Clupik] Partido sin campo tras import:", {
