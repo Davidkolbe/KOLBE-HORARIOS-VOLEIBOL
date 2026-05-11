@@ -2229,69 +2229,20 @@ function exportarPDF(){
 }
 
 // ============ AUTO ASIGNACIÓN ============
-const REGLAS_FIJAS = [
-  { id:"highlands_primero",     desc:"Highlands: sábado 09:00–11:00 (primero)" },
-  { id:"zola_vs_zola",          desc:"Zola vs Zola → viernes campo Zola" },
-  { id:"zola_alevin_no_coincidir", desc:"Zola Alevín A y Alevín B no coincidir — comparten jugadores" },
-  { id:"kolbe_alevin_viernes",  desc:"Kolbe Alevín → viernes 18:00" },
-  { id:"kolbe_alevin2_viernes", desc:"2× Kolbe Alevín → segundo va a las 19:00" },
-  { id:"fresnedillas_1entren",  desc:"Fresnedillas: 1 entrenador, ningún partido coincide. Fuera de casa → preferencia viernes 19:00" },
-  { id:"quercus_mismoentren",   desc:"Quercus: mismo entrenador ambos equipos, no coincidir" },
-  { id:"highlands_entren",      desc:"Highlands: Carlos(Alevín) / Julián(PrebB+BenjA+Chupetín) / Alejandro(PrebA+BenjB)" },
-  { id:"stmichael_no_preb_benj",desc:"St. Michael: Preb y Benjamín Green no coincidir" },
-  { id:"arenales_entren",       desc:"Arenales: Prebenjamín y Alevín mismo entrenador, no coincidir" },
-  { id:"everest_entren",        desc:"Everest: Prebenjamín B y Benjamín B no coincidir" },
-  { id:"zarzalejo_hora",        desc:"Rayo Zarzalejo: en casa → sábado 11:00" },
-  { id:"pardillo_benj_hora",    desc:"Unión Pardillo: Prebenjamín siempre a las 13:00" },
-];
+// Vacío en la app voleibol — los partidos vienen de Clupik con hora y pista ya asignadas.
+// Si en el futuro hace falta, añadir aquí reglas voleibol-específicas.
+const REGLAS_FIJAS = [];
 
-// Condicionantes detallados por equipo (para detección de conflictos)
-const CONDICIONANTES = {
-  // Fresnedillas: todos comparten entrenador
-  fresnedillas: {
-    entrenador: "ENTREN_FRESNEDILLAS",
-    equipos: ["FRESNEDILLAS"],
-    preferencia_fuera: {dia:"Viernes", hora:"19:00"},
-  },
-  // Quercus: mismo entrenador ambos equipos
-  quercus: {
-    entrenador: "ENTREN_QUERCUS",
-    equipos: ["QUERCUS"],
-  },
-  // Highlands: 3 entrenadores con equipos distintos
-  highlands: {
-    grupos: [
-      { entrenador:"CARLOS",    keywords:["ALEVÍN","ALEVIN"] },
-      { entrenador:"JULIÁN",    keywords:["PREB","PREB. B","BENJAMÍN A","BENJAMIN A","CHUPETÍN","CHUPETIN"] },
-      { entrenador:"ALEJANDRO", keywords:["PREB. A","PREBENJAMÍN A","BENJAMÍN B","BENJAMIN B"] },
-    ],
-  },
-  // St. Michael: Preb y Benjamín Green no coincidir
-  stmichael: {
-    no_coincidir: [["PREB","BENJAMIN GREEN","BENJAMIN GREEN"]],
-  },
-  // Arenales: Preb y Alevín mismo entrenador
-  arenales: {
-    entrenador: "ENTREN_ARENALES",
-    equipos: ["ARENALES"],
-  },
-  // Everest: Preb B y Benjamín B no coincidir
-  everest: {
-    no_coincidir: [["PREB","BENJAMIN B"]],
-  },
-  // Rayo Zarzalejo: en casa sábado 11:00
-  zarzalejo: {
-    en_casa: { dia:"Sabado", hora:"11:00" },
-  },
-  // Unión Pardillo: Benjamín a las 13:00
-  pardillo: {
-    benjamin_hora: "13:00",
-  },
-};
+// Condicionantes detallados por equipo — vacío en la app voleibol.
+const CONDICIONANTES = {};
 
 function renderReglasFijas(){
   const box = document.getElementById("reglas-fijas-display");
   if(!box) return;
+  if(!REGLAS_FIJAS.length){
+    box.innerHTML = '<span style="color:var(--gris4);font-size:12px;font-style:italic">Sin reglas fijas — los partidos vienen de Clupik con hora y pista asignadas. Para reglas puntuales, usa el cuadro de abajo.</span>';
+    return;
+  }
   box.innerHTML = REGLAS_FIJAS.map(r =>
     `<span style="background:var(--verde-b);color:var(--verde);padding:3px 9px;border-radius:99px;font-size:11px;font-weight:500">${r.desc}</span>`
   ).join("");
@@ -2419,80 +2370,9 @@ function autoAsignar(){
     asignados[p.id] = { dia, campo, hora };
   }
 
-  // ── REGLA 1: Zola vs Zola → viernes campo Zola ──
-  sinHora.forEach(p => {
-    const esZolaVsZola = equipoContiene(p.eq1,"ZOLA") && equipoContiene(p.eq2,"ZOLA");
-    if(esZolaVsZola){
-      const slot = nextSlot("Zola","Viernes","17:00",[p.id]);
-      if(slot) asignar(p,"Viernes","Zola",slot);
-    }
-  });
-
-  // ── REGLA 2: Kolbe Alevín → viernes 18:00, segundo a 19:00 ──
-  const alevinesKolbe = sinHora.filter(p =>
-    (equipoContiene(p.eq1,"KOLBE") || equipoContiene(p.eq2,"KOLBE")) &&
-    (equipoContiene(p.categoria || p.comp,"ALEVIN") || equipoContiene(p.eq1,"ALEVIN") || equipoContiene(p.eq2,"ALEVIN")) &&
-    !asignados[p.id]
-  );
-  alevinesKolbe.forEach((p, i) => {
-    const hora = i === 0 ? "18:00" : "19:00";
-    const dia = "Viernes";
-    const campo = p.campo && p.campo !== "Sin campo" ? p.campo : "Kolbe";
-    if(!hayConflictoEnt(p, dia, hora, p.id)){
-      asignar(p, dia, campo, hora);
-    }
-  });
-
-  // ── REGLA: Rayo Zarzalejo en casa → sábado 11:00 ──
-  sinHora.forEach(p => {
-    if(asignados[p.id]) return;
-    if(equipoContiene(p.eq1,"ZARZALEJO") && p.campo && equipoContiene(p.campo,"ZARZALEJO")){
-      if(!hayConflictoEnt(p,"Sabado","11:00",p.id)) asignar(p,"Sabado",p.campo,"11:00");
-    }
-  });
-
-  // ── REGLA: Unión Pardillo Prebenjamín → 13:00 ──
-  sinHora.forEach(p => {
-    if(asignados[p.id]) return;
-    const esPardiilloBenj = (equipoContiene(p.eq1,"PARDILLO") || equipoContiene(p.eq2,"PARDILLO")) &&
-      (equipoContiene(p.categoria||"","PREBENJAMIN") || equipoContiene(p.categoria||"","PREB"));
-    if(esPardiilloBenj){
-      const campo = p.campo && p.campo!=="Sin campo" ? p.campo : "Los Pinos";
-      const franja = getFranja(campo,"Sabado");
-      if(franja && toMins("13:00") + 60 <= toMins(franja.fin)){
-        if(!hayConflictoEnt(p,"Sabado","13:00",p.id)) asignar(p,"Sabado",campo,"13:00");
-      }
-    }
-  });
-
-  // ── REGLA: Fresnedillas fuera de casa → preferencia viernes 19:00 ──
-  sinHora.forEach(p => {
-    if(asignados[p.id]) return;
-    const esFresneVisitante = (equipoContiene(p.eq1,"FRESNEDILLAS") || equipoContiene(p.eq2,"FRESNEDILLAS")) &&
-      p.campo && !equipoContiene(p.campo,"FRESNE");
-    if(esFresneVisitante){
-      const franja = getFranja(p.campo,"Viernes");
-      if(franja && toMins("19:00")+60 <= toMins(franja.fin)){
-        if(!hayConflictoEnt(p,"Viernes","19:00",p.id)) asignar(p,"Viernes",p.campo,"19:00");
-      }
-    }
-  });
-
-  // ── REGLA 3: Highlands → sábado, primero en asignar ──
-  const highlandsPs = sinHora.filter(p => p.campo === "Highlands" && !asignados[p.id]);
-  highlandsPs.forEach(p => {
-    let minH = "09:00";
-    let horaExactaH = null;
-    reglasExtra.forEach(function(r){
-      const res = aplicarReglaExtra(p, r);
-      if(res && res.minHora){
-        if(res.exacta) horaExactaH = res.minHora;
-        else minH = toMins(res.minHora) > toMins(minH) ? res.minHora : minH;
-      }
-    });
-    const slot = horaExactaH || nextSlot("Highlands","Sabado",minH,[p.id]);
-    if(slot) asignar(p,"Sabado","Highlands",slot);
-  });
+  // ── Reglas team-específicas (Zola/Kolbe Alevín FS-F7/Zarzalejo/Pardillo/Fresnedillas/Highlands)
+  // se eliminaron en la app voleibol: eran de fútbol y no aplican.
+  // El reparto uniforme campo×día sigue funcionando, igual que las reglas extra que escriba el usuario.
 
   // ── RESTO: asignar campo a campo, repartiendo uniforme ──
   // Incluir todos los campos configurados + extras dinámicamente
