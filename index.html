@@ -3511,7 +3511,7 @@ function resumenKolbe(){
         var eq1n = (pp.eq1||"").toUpperCase().trim();
         var eq2n = (pp.eq2||"").toUpperCase().trim();
         var keN = ke.equipo.toUpperCase().trim();
-        var catMatch = !ke.cat || (pp.comp||pp.categoria||"").toUpperCase().includes(ke.cat.toUpperCase());
+        var catMatch = !ke.cat || (pp.comp||pp.categoria||"").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(ke.cat.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
         // Discriminar por disciplina (FS vs F7) — necesario para "CD KOLBE" sin sufijo
         var discMatch = true;
         if(ke.disc){
@@ -4285,7 +4285,7 @@ function resumenKolbeResultados(){
         var eq1n = (pp.eq1||"").toUpperCase().trim();
         var eq2n = (pp.eq2||"").toUpperCase().trim();
         var keN = ke.equipo.toUpperCase().trim();
-        var catMatch = !ke.cat || (pp.comp||pp.categoria||"").toUpperCase().includes(ke.cat.toUpperCase());
+        var catMatch = !ke.cat || (pp.comp||pp.categoria||"").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(ke.cat.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
         var discMatch = true;
         if(ke.disc){
           var ligaUp = (pp.comp||pp.liga||"").toUpperCase();
