@@ -4004,7 +4004,7 @@ function _buildIGContainer(format, semana, rowsIG, kind){
   ].join(";");
 
   // Agrupar por disciplina
-  var grupos = {FS: [], F7: []};
+  var grupos = {FS: [], F7: [], VB: []};
   rowsIG.forEach(function(r){ if(grupos[r.disc]) grupos[r.disc].push(r); });
 
   function buildSeccion(disc){
@@ -4090,6 +4090,7 @@ function _buildIGContainer(format, semana, rowsIG, kind){
     return wrap;
   }
 
+  var sVB = buildSeccion("VB"); if(sVB) bodyInner.appendChild(sVB);
   var sFS = buildSeccion("FS"); if(sFS) bodyInner.appendChild(sFS);
   var sF7 = buildSeccion("F7"); if(sF7) bodyInner.appendChild(sF7);
   body.appendChild(bodyInner);
