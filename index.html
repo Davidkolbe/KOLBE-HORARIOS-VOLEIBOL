@@ -432,6 +432,7 @@ const EQUIPOS_BASE = [
 const CAMPOS_BASE = {
   "PISTA 1 C.I. Kolbe":                {Viernes:{ini:"17:00",fin:"20:00",max:3}, Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Av. de la Universidad, 4, Villanueva de la Cañada"},
   "PISTA 2 C.I. Kolbe":                {Viernes:{ini:"17:00",fin:"20:00",max:3}, Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Av. de la Universidad, 4, Villanueva de la Cañada"},
+  "Pista 1 Polideportivo UCJC":        {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"C/ Castillo de Alarcón 47, Villafranca del Castillo"},
   "Pista 2 Polideportivo UCJC":        {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"C/ Castillo de Alarcón 47, Villafranca del Castillo"},
   "Pista 3 Polideportivo UCJC":        {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"C/ Castillo de Alarcón 47, Villafranca del Castillo"},
 };
@@ -485,15 +486,19 @@ const FACILITY_ID_MAP = {
   "66104": "Pista Exterior Infanta Cristina",
   "73417": "Pista Kolbe Secundaria",
   // Voleibol — confirmados por David (11/05/2026):
-  "65300": "PISTA 1 C.I. Kolbe",
-  // 65958: pendiente
-  // 65224: pendiente
-  // 78453: pendiente
-  // 96353: pendiente
-  // 96919: pendiente
-  // 103105: pendiente
-  // 118964: pendiente
-  // 119043: pendiente
+  "65300":  "PISTA 1 C.I. Kolbe",
+  "65958":  "PISTA 2 C.I. Kolbe",
+  "96353":  "Pista 1 Polideportivo UCJC",
+  "96919":  "Pista 2 Polideportivo UCJC",
+  "103105": "Pista 3 Polideportivo UCJC",
+  "118964": "Pista 1 SEK El Castillo",
+  "119043": "Pista 2 SEK El Castillo",
+  "65945":  "IES Sapere Aude (Vva. Pardillo)",
+  "65961":  "Pista 2 Colegio Quercus",
+  "65959":  "Pista 1 Colegio Highlands Los Fresnos",
+  // Pendientes (David no los identificó):
+  // 65224: ?
+  // 78453: ?
 };
 
 // Mapeo dinámico facility_id → campo que aprende del usuario.
