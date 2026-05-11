@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Planificador Semanal — Club Kolbe</title>
+<title>Planificador Voleibol — CD Kolbe</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -177,8 +177,8 @@ body{font-family:var(--f);background:var(--gris1);color:var(--negro);font-size:1
 <div class="topbar">
   <div class="brand">
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/><circle cx="9" cy="9" r="3.5" fill="white" opacity=".9"/></svg>
-    Club Kolbe
-    <span class="brand-sub">Planificador semanal</span>
+    Club Kolbe · 🏐 Voleibol
+    <span class="brand-sub">Planificador voleibol</span>
   </div>
   <div class="topbar-actions">
     <button class="btn btn-ghost btn-sm" onclick="toggleConf('equipos')">⚙ Entrenadores</button>
@@ -2136,7 +2136,7 @@ function _doExportExcel(){
   }
 
   const wsData = [];
-  wsData.push(["Club Kolbe — Horarios de jornada", "", "", "", "", "", "", ""]);
+  wsData.push(["Club Kolbe Voleibol — Horarios de jornada", "", "", "", "", "", "", ""]);
   wsData.push(["Semana del " + semana, "", "", "", "", "", "", ""]);
   wsData.push(["", "", "", "", "", "", "", ""]);
   wsData.push(["", "", "", "", "", "", "", ""]);
@@ -2247,7 +2247,7 @@ function exportarPDF(){
 .wa-copy-btn:hover{background:rgba(255,255,255,0.2)}
 @media print{body{padding:12px}@page{margin:1cm}}
   </style></head><body>
-  <h1>Club Kolbe — Planificador de jornada</h1>
+  <h1>Club Kolbe · 🏐 Voleibol — Planificador de jornada</h1>
   <div class="sub">${semana}</div>
   <table>${filas}</table>
   
@@ -3503,27 +3503,17 @@ function copiarVistaEquipo(id, btn){
 // ============ RESUMEN KOLBE PARTIDOS ============
 // Entrenadores Kolbe por equipo
 const KOLBE_EQUIPOS = [
-  // FÚTBOL SALA
-  {equipo:"",                   cat:"",            label:"CD KOLBE CHUPETINES",categoria:"Chupetín",    entrenador:"CHECHU / ALBERTO", disc:"FS"},
-  {equipo:"CD KOLBE 1º BLANCO", cat:"PREBENJAMIN", label:"CD KOLBE 1º BLANCO", categoria:"Prebenjamín", entrenador:"FRANK / ESPI", disc:"FS"},
-  {equipo:"CD KOLBE 1º VERDE",  cat:"PREBENJAMIN", label:"CD KOLBE 1º VERDE",  categoria:"Prebenjamín", entrenador:"FRANK / ESPI", disc:"FS"},
-  {equipo:"CD KOLBE 2º",        cat:"PREBENJAMIN", label:"CD KOLBE 2º",        categoria:"Prebenjamín", entrenador:"SOLER",        disc:"FS"},
-  {equipo:"CD KOLBE 3º BLANCO", cat:"BENJAMIN",    label:"CD KOLBE 3º BLANCO", categoria:"Benjamín",    entrenador:"RODRI",        disc:"FS"},
-  {equipo:"CD KOLBE 3º VERDE",  cat:"BENJAMIN",    label:"CD KOLBE 3º VERDE",  categoria:"Benjamín",    entrenador:"FRANK",        disc:"FS"},
-  {equipo:"CD KOLBE 4º",        cat:"BENJAMIN",    label:"CD KOLBE 4º",        categoria:"Benjamín",    entrenador:"PABLO",        disc:"FS"},
-  {equipo:"CD KOLBE",           cat:"ALEVIN",      label:"CD KOLBE ALEVIN",    categoria:"Alevín",      entrenador:"RUIBI",        disc:"FS"},
-  // FÚTBOL SALA FEDERADO
-  {equipo:"",                   cat:"",            label:"CD KOLBE INFANTIL",  categoria:"Infantil",    entrenador:"RUIBI",        disc:"FS"},
-  {equipo:"",                   cat:"",            label:"CD KOLBE CADETE FS", categoria:"Cadete",      entrenador:"GONZALO",      disc:"FS"},
-  {equipo:"",                   cat:"",            label:"CD KOLBE JUVENIL FS",categoria:"Juvenil",     entrenador:"GONZALO",      disc:"FS"},
-  // FÚTBOL 7
-  {equipo:"CD KOLBE BLANCO",    cat:"ALEVIN",      label:"CD KOLBE BLANCO",    categoria:"Alevín",      entrenador:"RUIBI",        disc:"F7"},
-  {equipo:"CD KOLBE VERDE",     cat:"ALEVIN",      label:"CD KOLBE VERDE",     categoria:"Alevín",      entrenador:"SAMUEL",       disc:"F7"},
-  {equipo:"CD KOLBE MORADO",    cat:"ALEVIN",      label:"CD KOLBE MORADO",    categoria:"Alevín",      entrenador:"SAMUEL",       disc:"F7"},
-  {equipo:"CD KOLBE BLANCO",    cat:"INFANTIL",    label:"CD KOLBE BLANCO",    categoria:"Infantil",    entrenador:"RUBI",         disc:"F7"},
-  {equipo:"CD KOLBE VERDE",     cat:"INFANTIL",    label:"CD KOLBE VERDE",     categoria:"Infantil",    entrenador:"GÓMEZ",        disc:"F7"},
-  {equipo:"CD KOLBE CADETE",    cat:"CADETE",      label:"CD KOLBE CADETE",    categoria:"Cadete",      entrenador:"PABLO",        disc:"F7"},
-  {equipo:"CD KOLBE JUV.",      cat:"CADETE",      label:"CD KOLBE JUVENIL",   categoria:"Juvenil",     entrenador:"PABLO",        disc:"F7"},
+  // VOLEIBOL — Club Deportivo Kolbe
+  {equipo:"CD KOLBE",        cat:"BENJAMIN",  label:"CD KOLBE BENJAMÍN",       categoria:"Benjamín",  entrenador:"SANDRA / ÁNGELA / SILVIA", disc:"VB"},
+  {equipo:"CD KOLBE VERDE",  cat:"ALEVIN",    label:"CD KOLBE VERDE Alevín",   categoria:"Alevín",    entrenador:"SANDRA / ÁNGELA / SILVIA", disc:"VB"},
+  {equipo:"CD KOLBE BLANCO", cat:"ALEVIN",    label:"CD KOLBE BLANCO Alevín",  categoria:"Alevín",    entrenador:"SANDRA / ÁNGELA / SILVIA", disc:"VB"},
+  {equipo:"CD KOLBE BLANCO", cat:"INFANTIL",  label:"CD KOLBE BLANCO Infantil",categoria:"Infantil",  entrenador:"SANDRA",                   disc:"VB"},
+  {equipo:"CD KOLBE VERDE",  cat:"INFANTIL",  label:"CD KOLBE VERDE Infantil", categoria:"Infantil",  entrenador:"SANDRA",                   disc:"VB"},
+  {equipo:"CD KOLBE MORADO", cat:"INFANTIL",  label:"CD KOLBE MORADO Infantil",categoria:"Infantil",  entrenador:"ÁNGELA",                   disc:"VB"},
+  {equipo:"CD KOLBE VERDE",  cat:"CADETE",    label:"CD KOLBE VERDE Cadete",   categoria:"Cadete",    entrenador:"DAVID",                    disc:"VB"},
+  {equipo:"CD KOLBE BLANCO", cat:"CADETE",    label:"CD KOLBE BLANCO Cadete",  categoria:"Cadete",    entrenador:"DAVID",                    disc:"VB"},
+  {equipo:"CD KOLBE VERDE",  cat:"JUVENIL",   label:"CD KOLBE VERDE Juvenil",  categoria:"Juvenil",   entrenador:"RAÚL",                     disc:"VB"},
+  {equipo:"CD KOLBE BLANCO", cat:"JUVENIL",   label:"CD KOLBE BLANCO Juvenil", categoria:"Juvenil",   entrenador:"RAÚL",                     disc:"VB"},
 ];
 
 function resumenKolbe(){
@@ -5965,7 +5955,7 @@ async function vincularConClupik(){
   document.body.appendChild(loader);
 
   try {
-    const r = await fetch("/api/clupik-matches-week?from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to));
+    const r = await fetch("/api/clupik-matches-week?from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to) + "&disciplines=voleibol");
     if(!r.ok){
       const txt = await r.text();
       throw new Error("HTTP " + r.status + ": " + txt.slice(0, 200));
@@ -6522,5 +6512,219 @@ function aplicarArreglarFechas(){
     </div>
   </div>
 </div>
+
+
+<!-- ====== KOLBE SYNC: capa Supabase para compartir datos entre dispositivos ====== -->
+<script>
+(function(){
+  const SUPABASE_URL = "https://jwoeoloaaelzarqpxvtc.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_HgcvMp8iThAGvwx1C3_GSg_5SKYcHyU";
+  const SUPABASE_TABLE = "app_state";
+  const SUPABASE_ROW_ID = "main";
+  const SYNC_KEYS = [
+    "kolbe_jornadas", "kolbe_equipos", "kolbe_campos",
+    "kolbe_coordinadores", "kolbe_entrenadores_tels",
+    "kolbe_grupos_wa", "kolbe_gruposWA"
+  ];
+  const POLL_MS = 30000;
+  const DEBOUNCE_MS = 2000;
+
+  let _lastSyncedAt = 0;
+  let _pushTimer = null;
+  let _inFlight = null;
+
+  let _userTag = "";
+  try {
+    _userTag = localStorage.getItem("kolbe_user_tag") || "";
+    if(!_userTag){
+      _userTag = (prompt("¿Quién eres? (escribe tu nombre, ej. David o Bonilla)") || "anon").trim() || "anon";
+      localStorage.setItem("kolbe_user_tag", _userTag);
+    }
+  } catch(e){ _userTag = "anon"; }
+
+  const origSet = Storage.prototype.setItem;
+  const origRemove = Storage.prototype.removeItem;
+
+  async function _get(){
+    const url = SUPABASE_URL + "/rest/v1/" + SUPABASE_TABLE + "?id=eq." + SUPABASE_ROW_ID + "&select=data,updated_at,updated_by";
+    const r = await fetch(url, {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY }
+    });
+    if(!r.ok) throw new Error("Supabase GET " + r.status);
+    const arr = await r.json();
+    return arr[0] || null;
+  }
+
+  async function _put(data){
+    const url = SUPABASE_URL + "/rest/v1/" + SUPABASE_TABLE + "?id=eq." + SUPABASE_ROW_ID;
+    const r = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": "Bearer " + SUPABASE_KEY,
+        "Content-Type": "application/json",
+        "Prefer": "return=representation"
+      },
+      body: JSON.stringify({ data: data, updated_by: _userTag })
+    });
+    if(!r.ok) throw new Error("Supabase PATCH " + r.status);
+    const arr = await r.json();
+    return arr[0] || null;
+  }
+
+  function _collect(){
+    const out = {};
+    for(const k of SYNC_KEYS){
+      const v = localStorage.getItem(k);
+      if(v !== null) out[k] = v;
+    }
+    return out;
+  }
+
+  function _apply(remote){
+    if(!remote || typeof remote !== "object") return false;
+    let changed = false;
+    for(const k of Object.keys(remote)){
+      if(SYNC_KEYS.indexOf(k) < 0) continue;
+      const local = localStorage.getItem(k);
+      const val = remote[k];
+      if(local !== val){
+        if(val === null) origRemove.call(localStorage, k);
+        else origSet.call(localStorage, k, val);
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
+  async function downloadOnce(){
+    try {
+      const row = await _get();
+      if(!row) return { ok: false };
+      const data = row.data || {};
+      if(Object.keys(data).length === 0) {
+        _lastSyncedAt = new Date(row.updated_at).getTime();
+        return { ok: true, hadData: false };
+      }
+      const changed = _apply(data);
+      _lastSyncedAt = new Date(row.updated_at).getTime();
+      return { ok: true, hadData: true, changed: changed, by: row.updated_by };
+    } catch(e){
+      console.warn("[kolbeSync] download falló:", e.message);
+      return { ok: false, error: e.message };
+    }
+  }
+
+  async function uploadNow(){
+    if(_inFlight) return _inFlight;
+    _inFlight = (async function(){
+      try {
+        const data = _collect();
+        const row = await _put(data);
+        if(row && row.updated_at) _lastSyncedAt = new Date(row.updated_at).getTime();
+        console.log("[kolbeSync] subido por " + _userTag);
+        _updateBadge("ok");
+      } catch(e){
+        console.warn("[kolbeSync] upload falló:", e.message);
+        _updateBadge("error");
+      } finally {
+        _inFlight = null;
+      }
+    })();
+    return _inFlight;
+  }
+
+  function queueUpload(){
+    clearTimeout(_pushTimer);
+    _pushTimer = setTimeout(uploadNow, DEBOUNCE_MS);
+    _updateBadge("pending");
+  }
+
+  Storage.prototype.setItem = function(k, v){
+    origSet.call(this, k, v);
+    if(this === localStorage && SYNC_KEYS.indexOf(k) >= 0) queueUpload();
+  };
+  Storage.prototype.removeItem = function(k){
+    origRemove.call(this, k);
+    if(this === localStorage && SYNC_KEYS.indexOf(k) >= 0) queueUpload();
+  };
+
+  function _ensureBadge(){
+    let b = document.getElementById("kolbe-sync-badge");
+    if(b) return b;
+    if(!document.body) return null;
+    b = document.createElement("div");
+    b.id = "kolbe-sync-badge";
+    b.style.cssText = "position:fixed;bottom:.5rem;right:.5rem;background:#1da851;color:#fff;padding:6px 10px;border-radius:6px;z-index:9998;font-family:sans-serif;font-size:11px;cursor:pointer;opacity:0.8;box-shadow:0 2px 6px rgba(0,0,0,0.15);user-select:none";
+    b.title = "Click para forzar sync";
+    b.addEventListener("click", function(){ checkRemoteAndApply(); });
+    document.body.appendChild(b);
+    return b;
+  }
+  function _updateBadge(state){
+    const b = _ensureBadge();
+    if(!b){
+      // body aún no listo; intentar más tarde
+      setTimeout(function(){ _updateBadge(state); }, 200);
+      return;
+    }
+    const map = {
+      ok: { txt: "🟢 Sync · " + _userTag, bg: "#1da851", op: 0.7 },
+      pending: { txt: "🟡 Subiendo…", bg: "#d97706", op: 1 },
+      error: { txt: "🔴 Error sync", bg: "#dc2626", op: 1 },
+      remote: { txt: "🔄 Cambios nuevos · pulsa para recargar", bg: "#2563eb", op: 1 },
+    };
+    const s = map[state] || map.ok;
+    b.textContent = s.txt;
+    b.style.background = s.bg;
+    b.style.opacity = s.op;
+  }
+
+  async function checkRemoteAndApply(){
+    try {
+      const row = await _get();
+      if(!row) return;
+      const remoteTs = new Date(row.updated_at).getTime();
+      const remoteBy = row.updated_by || "";
+      if(remoteTs > _lastSyncedAt + 1500 && remoteBy && remoteBy !== _userTag){
+        _apply(row.data || {});
+        _lastSyncedAt = remoteTs;
+        _updateBadge("remote");
+        const b = _ensureBadge();
+        if(b){
+          b.onclick = function(){ location.reload(); };
+        }
+      } else {
+        _updateBadge("ok");
+      }
+    } catch(e){
+      console.warn("[kolbeSync] poll falló:", e.message);
+    }
+  }
+
+  (async function(){
+    const res = await downloadOnce();
+    if(res.ok && res.hadData && res.changed){
+      console.log("[kolbeSync] datos remotos aplicados, recargando…");
+      location.reload();
+      return;
+    }
+    _updateBadge("ok");
+    setInterval(checkRemoteAndApply, POLL_MS);
+  })();
+
+  window.kolbeSync = {
+    download: downloadOnce,
+    upload: uploadNow,
+    check: checkRemoteAndApply,
+    userTag: function(){ return _userTag; },
+    setUserTag: function(t){
+      _userTag = (t||"").trim() || "anon";
+      try { origSet.call(localStorage, "kolbe_user_tag", _userTag); } catch(e){}
+      _updateBadge("ok");
+    }
+  };
+})();
+</script>
 </body>
 </html>
