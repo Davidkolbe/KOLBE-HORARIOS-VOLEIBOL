@@ -4689,7 +4689,7 @@ function resumenKolbeResultados(){
           // 1. Buscar candidatas con matching de nombre tolerante (todas las que coincidan)
           var candidatas = filasIndexadas.filter(function(f){
             if(f.usada) return false;
-            if(!f.input || f.input.disabled) return false;
+            if(!f.input) return false;   // sí aceptamos disabled (DESCANSO) — los habilitamos abajo si matchean
             return f.equipoNorm === equipoKolbeNorm
                 || f.equipoNorm.indexOf(equipoKolbeNorm) !== -1
                 || equipoKolbeNorm.indexOf(f.equipoNorm) !== -1;
@@ -4716,6 +4716,26 @@ function resumenKolbeResultados(){
           }
           var f = candidatas[0]; // tras desambiguar, cogemos la primera
           f.usada = true;
+
+          // Si la fila estaba marcada como DESCANSO (input.disabled),
+          // construir la etiqueta del partido y habilitar el input antes
+          // de meter el resultado. Si no se hace, la fila se queda en "🟡 DESCANSO".
+          if(f.input.disabled){
+            try {
+              var tds = f.tr.querySelectorAll("td");
+              var tdPart = tds[3];                                        // 0=equipo,1=cat,2=entr,3=partido,4=resultado
+              var spanPart = tdPart && tdPart.querySelector("span");
+              var icono = kolbeEsLocal ? "\uD83C\uDFE0" : "\u2708\uFE0F";   // 🏠 / ✈️
+              var rival = kolbeEsLocal ? (p.eq2||"") : (p.eq1||"");
+              var labelPart = icono + " vs " + rival;
+              if(spanPart){
+                spanPart.textContent = labelPart;
+                tdPart.style.color = "";
+              }
+              f.input.disabled = false;
+              f.input.style.background = "#fff";
+            } catch(e){ console.warn("No se pudo habilitar fila DESCANSO:", e); }
+          }
 
           if(p.postponed){
             f.input.value = "APLAZADO";
