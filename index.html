@@ -2575,6 +2575,7 @@ async function guardarCopia(){
     coordinadores: coordinadores || {},
     entrenadoresTels: entrenadoresTels || {},
     gruposWA: gruposWA || {},
+    facilityUserMap: _getFacilityUserMap(),
   };
   const json = JSON.stringify(backup, null, 2);
   const d = new Date();
@@ -2673,6 +2674,11 @@ function restaurarCopia(e){
       if(backup.gruposWA && typeof backup.gruposWA === "object"){
         gruposWA = backup.gruposWA;
         saveGruposWA();
+      }
+
+      // Restore mapeo aprendido de facility_id → pabellón
+      if(backup.facilityUserMap && typeof backup.facilityUserMap === "object"){
+        _setFacilityUserMap(backup.facilityUserMap);
       }
 
       // Go back to historial to show restored jornadas
