@@ -436,7 +436,7 @@ const CAMPOS_BASE = {
 };
 
 const LUGAR_MAP = [
-  // ── FÚTBOL SALA (más específicos primero) ──
+  // ── VOLEIBOL / FS (más específicos primero) ──
   ["pista secundaria",              "Pista Kolbe Secundaria"],
   ["pista semicubierta",            "Pista Exterior Infanta Cristina"],
   ["pabellón infanta cristina",     "Pabellón Infanta Cristina"],
@@ -449,7 +449,7 @@ const LUGAR_MAP = [
   ["pabellón colegio zola",         "Pabellón Zola"],
   ["pabellón zola",                 "Pabellón Zola"],
   ["arcadia",                       "Colegio Arcadia"],
-  // ── FÚTBOL 7 ──
+  // ── F7 (no usado en voleibol pero mantenido por compatibilidad) ──
   ["kolbe",          "Kolbe"],
   ["zola",           "Zola"],
   ["pinos",          "Los Pinos"],
@@ -2825,7 +2825,7 @@ function mensajeUnicoKolbe(){
     var disc = getDisciplina(p);
     if(disc !== lastDisc){
       lastDisc = disc;
-      msg += NL + "⚽ *" + disc.toUpperCase() + "*" + NL;
+      msg += NL + "🏐 *VOLEIBOL*" + NL;
     }
 
     msg += NL;
@@ -3091,7 +3091,7 @@ function generarMensajesWhatsApp(){
       }
 
       var msg = (window._etiquetaEnvio || "")
-        + "⚽ *" + equipo + "*" + NL
+        + "🏐 *" + equipo + "*" + NL
         + "📅 " + dia + " " + semana + NL
         + "🔔 Convocatoria: *" + convocatoria + "*" + NL
         + "⏰ Hora partido: *" + hora + "*" + NL
@@ -3593,7 +3593,7 @@ function resumenKolbe(){
       lastDisc = r.disc;
       var sepRow = document.createElement("tr");
       sepRow.innerHTML = '<td colspan="6" style="background:var(--verde-s);color:var(--verde2);font-weight:700;padding:6px 10px;font-size:11px;letter-spacing:.5px;border:1px solid var(--gris2)">'
-        + (r.disc === "FS" ? "⚽ FÚTBOL SALA" : "⚽ FÚTBOL 7") + '</td>';
+        + "🏐 VOLEIBOL" + '</td>';
       tbody.appendChild(sepRow);
     }
     var tr = document.createElement("tr");
@@ -3712,7 +3712,7 @@ function resumenKolbe(){
 
       if(r.disc !== lastD){
         lastD = r.disc;
-        txt += "\n" + (r.disc==="FS" ? "⚽ *FÚTBOL SALA*" : "⚽ *FÚTBOL 7*") + "\n";
+        txt += "\n" + "🏐 *VOLEIBOL*" + "\n";
       }
 
       var sinPartido = partido === "—" || !partido;
@@ -4022,7 +4022,7 @@ function _buildIGContainer(format, semana, rowsIG, kind){
       "margin-bottom:" + (theme.padX*0.25) + "px",
       "text-transform:uppercase",
     ].join(";");
-    titulo.textContent = (disc === "FS" ? "⚽  Fútbol Sala" : "⚽  Fútbol 7");
+    titulo.textContent = "🏐  Voleibol";
     wrap.appendChild(titulo);
 
     arr.forEach(function(r, i){
@@ -4393,7 +4393,7 @@ function resumenKolbeResultados(){
       lastDisc = r.disc;
       var sepRow = document.createElement("tr");
       sepRow.innerHTML = '<td colspan="6" style="background:var(--verde-s);color:var(--verde2);font-weight:700;padding:6px 10px;font-size:11px;letter-spacing:.5px;border:1px solid var(--gris2)">'
-        + (r.disc === "FS" ? "⚽ FÚTBOL SALA" : "⚽ FÚTBOL 7") + '</td>';
+        + "🏐 VOLEIBOL" + '</td>';
       tbody.appendChild(sepRow);
     }
 
@@ -4627,7 +4627,7 @@ function resumenKolbeResultados(){
 
     var labelOriginal = btnSync.textContent;
     btnSync.textContent = "⏳ Consultando…"; btnSync.disabled = true;
-    fetch("/api/clupik-resultados-week?from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to))
+    fetch("/api/clupik-resultados-week?from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to) + "&disciplines=voleibol")
       .then(function(r){ return r.json(); })
       .then(function(data){
         if(data && data.error){ throw new Error(data.error); }
@@ -4758,7 +4758,7 @@ function resumenKolbeResultados(){
     var txt = "🏆 *RESULTADOS CD KOLBE — " + semana.toUpperCase() + "*\n";
     var lastD = "";
     rIG.forEach(function(r){
-      if(r.disc !== lastD){ lastD = r.disc; txt += "\n" + (r.disc==="FS" ? "⚽ *FÚTBOL SALA*" : "⚽ *FÚTBOL 7*") + "\n"; }
+      if(r.disc !== lastD){ lastD = r.disc; txt += "\n" + "🏐 *VOLEIBOL*" + "\n"; }
       txt += "\n📋 *" + r.equipo + "* (" + r.categoria + ") · " + r.entrenador + "\n";
       if(r.partido === "🟡 DESCANSO"){ txt += "🟡 Descanso\n"; }
       else if(/APLAZAD|POSTPONED/i.test(r.resultado||"")){ txt += r.partido + "\n📌 Aplazado\n"; }

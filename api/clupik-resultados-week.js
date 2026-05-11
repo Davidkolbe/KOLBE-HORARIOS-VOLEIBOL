@@ -20,6 +20,17 @@ function pick(attrs, enKey, esKey) {
   return null;
 }
 
+// Detecta disciplina por nombre del torneo
+function detectDiscipline(name) {
+  const n = (name || '').toUpperCase();
+  if (n.includes('VOLEIBOL') || n.includes('VOLLEY')) return 'voleibol';
+  if (n.includes('F-7') || n.includes('F7') || n.includes('FÚTBOL 7') || n.includes('FUTBOL 7')
+      || n.includes('F-SIETE') || n.includes('FUTBOL-7')) return 'f7';
+  if (n.includes('F-SALA') || n.includes('FS ') || n.startsWith('FS')
+      || n.includes('SALA') || n.includes('FUTBOL SALA') || n.includes('FÚTBOL SALA')) return 'fs';
+  return null;
+}
+
 const ACTIVE_STATUSES = new Set([
   'setting_up', 'running', 'public', 'active', 'in_progress',
   'configurando', 'en_progreso',
@@ -174,14 +185,25 @@ module.exports = async (req, res) => {
   if (!from || !to) {
     return sendJson(res, 400, { error: 'Faltan query params from/to (formato DD/MM/YYYY)' });
   }
+  const discRaw = (req.query.disciplines || '').trim().toLowerCase();
+  const discFilter = discRaw ? new Set(discRaw.split(',').map((s) => s.trim()).filter(Boolean)) : null;
+
   const managerId = process.env.CLUPIK_MANAGER_ID || '229546';
 
   try {
     const tournaments = await paginate('/tournaments', { filter: `manager.id:${managerId}` });
-    const active = tournaments.filter((t) => {
+    let active = tournaments.filter((t) => {
       const status = (pick(t.attributes, 'status', 'estado') || '').toLowerCase();
       return ACTIVE_STATUSES.has(status);
     });
+    // Filtrar por disciplina si viene especificado
+    if (discFilter) {
+      active = active.filter((t) => {
+        const d = detectDiscipline(pick(t.attributes, 'name', 'nombre') || '');
+        if (!d) return true;  // disciplina desconocida: dejar pasar
+        return discFilter.has(d);
+      });
+    }
 
     const results = await Promise.allSettled(active.map((t) => processTournament(t, from, to)));
 
