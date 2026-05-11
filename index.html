@@ -395,77 +395,44 @@ body{font-family:var(--f);background:var(--gris1);color:var(--negro);font-size:1
 <script>
 // ============ DATOS BASE ============
 const EQUIPOS_BASE = [
-  // FÚTBOL SALA — nombres exactos como vienen en CSV Clupik
-  {nombre:"CD KOLBE 1º BLANCO",  categoria:"Prebenjamín", entrenadores:"FRANK, ESPI",      liga:"sala"},
-  {nombre:"CD KOLBE 1º VERDE",   categoria:"Prebenjamín", entrenadores:"FRANK, ESPI",      liga:"sala"},
-  {nombre:"CD KOLBE 2º",         categoria:"Prebenjamín", entrenadores:"SOLER",            liga:"sala"},
-  {nombre:"CD KOLBE 3º BLANCO",  categoria:"Benjamín",    entrenadores:"RODRI",            liga:"sala"},
-  {nombre:"CD KOLBE 3º VERDE",   categoria:"Benjamín",    entrenadores:"FRANK",            liga:"sala"},
-  {nombre:"CD KOLBE 4º",         categoria:"Benjamín",    entrenadores:"PABLO",            liga:"sala"},
-  // FÚTBOL 7 — nombres exactos como vienen en CSV Clupik
-  {nombre:"CD KOLBE BLANCO",     categoria:"Alevín",      entrenadores:"RUIBI",            liga:"f7"},
-  {nombre:"CD KOLBE MORADO",     categoria:"Alevín",      entrenadores:"SAMUEL",           liga:"f7"},
-  {nombre:"CD KOLBE VERDE",      categoria:"Alevín",      entrenadores:"SAMUEL",           liga:"f7"},
-  {nombre:"CD KOLBE BLANCO",     categoria:"Infantil",    entrenadores:"RUBI",             liga:"f7"},
-  {nombre:"CD KOLBE VERDE",      categoria:"Infantil",    entrenadores:"GÓMEZ",            liga:"f7"},
-  {nombre:"CD KOLBE CADETE",     categoria:"Cadete",      entrenadores:"PABLO",            liga:"f7"},
-  {nombre:"CD KOLBE JUV.",       categoria:"Juvenil",     entrenadores:"PABLO",            liga:"f7"},
-  // ZOLA
-  {nombre:'COLEGIO ZOLA A',  categoria:"",            entrenadores:"TOMÁS",            liga:"f7"},
-  {nombre:'COLEGIO ZOLA B',  categoria:"",            entrenadores:"ANDRÉS",           liga:"f7"},
-  {nombre:"COLEGIO ZOLA FEMENINO", categoria:"",          entrenadores:"RODRIGO",          liga:"f7"},
-  {nombre:"ZOLA VILLAFRANCA A",  categoria:"",            entrenadores:"TOMÁS",            liga:"sala"},
-  {nombre:"ZOLA VILLAFRANCA B",  categoria:"",            entrenadores:"ANDRÉS",           liga:"sala"},
-  // FRESNEDILLAS
-  {nombre:"CD FRESNEDILLAS",     categoria:"",            entrenadores:"ENTREN_FRESNE",    liga:"f7"},
-  // QUERCUS
-  {nombre:"CDE QUERCUS EDUCAJUNIOR A", entrenadores:"ENTREN_QUERCUS", liga:"f7"},
-  {nombre:"CDE QUERCUS EDUCAJUNIOR B", entrenadores:"ENTREN_QUERCUS", liga:"f7"},
-  // HIGHLANDS
-  {nombre:"COLEGIO HIGHLANDS LOS FRESNOS",     entrenadores:"JULIÁN",     liga:"f7"},
-  {nombre:'COLEGIO HIGHLANDS LOS FRESNOS A', entrenadores:"ALEJANDRO", liga:"f7"},
-  // ST. MICHAEL
-  {nombre:"ST. MICHAEL´S GREEN", entrenadores:"ENTREN_STM_GREEN",  liga:"f7"},
-  {nombre:"ST. MICHAEL´S SCHOOL",entrenadores:"ENTREN_STM_SCHOOL", liga:"f7"},
-  // ARENALES
-  {nombre:"CD ARENALES ARROYOMOLINOS", entrenadores:"ENTREN_ARENALES", liga:"f7"},
-  // EVEREST
-  {nombre:'EVEREST B',       entrenadores:"ENTREN_EVEREST_B",  liga:"f7"},
-  // RAYO ZARZALEJO
-  {nombre:"RAYO ZARZALEJO",      entrenadores:"ENTREN_ZARZALEJO",  liga:"f7"},
-  // UNIÓN PARDILLO
-  {nombre:"UNIÓN PARDILLO",      entrenadores:"ENTREN_PARDILLO",   liga:"f7"},
-  {nombre:"UNIÓN PARDILLO FEM ALEVIN", entrenadores:"ENTREN_PARDILLO", liga:"sala"},
+  // === CD KOLBE VOLEIBOL ===
+  {nombre:"CD KOLBE",            categoria:"Benjamín", entrenadores:"SANDRA / ÁNGELA / SILVIA", liga:"voleibol"},
+  {nombre:"CD KOLBE VERDE",      categoria:"Alevín",   entrenadores:"SANDRA / ÁNGELA / SILVIA", liga:"voleibol"},
+  {nombre:"CD KOLBE BLANCO",     categoria:"Alevín",   entrenadores:"SANDRA / ÁNGELA / SILVIA", liga:"voleibol"},
+  {nombre:"CD KOLBE BLANCO",     categoria:"Infantil", entrenadores:"SANDRA",                   liga:"voleibol"},
+  {nombre:"CD KOLBE VERDE",      categoria:"Infantil", entrenadores:"SANDRA",                   liga:"voleibol"},
+  {nombre:"CD KOLBE MORADO",     categoria:"Infantil", entrenadores:"ÁNGELA",                   liga:"voleibol"},
+  {nombre:"CD KOLBE VERDE",      categoria:"Cadete",   entrenadores:"DAVID",                    liga:"voleibol"},
+  {nombre:"CD KOLBE BLANCO",     categoria:"Cadete",   entrenadores:"DAVID",                    liga:"voleibol"},
+  {nombre:"CD KOLBE VERDE",      categoria:"Juvenil",  entrenadores:"RAÚL",                     liga:"voleibol"},
+  {nombre:"CD KOLBE BLANCO",     categoria:"Juvenil",  entrenadores:"RAÚL",                     liga:"voleibol"},
+  // === RIVALES (Bonilla completará entrenadores conforme se conozcan) ===
+  {nombre:"AVENGERS LFIMOLIÈRE AZUL",          entrenadores:"", liga:"voleibol"},
+  {nombre:"AVENGERS LFIMOLIÈRE ROJO",          entrenadores:"", liga:"voleibol"},
+  {nombre:"AVENGERS LFIMOLIÈRE NARANJA JUV",   entrenadores:"", liga:"voleibol"},
+  {nombre:"AVENGERS LFIMOLIÈRE BLANCO",        entrenadores:"", liga:"voleibol"},
+  {nombre:"C.D.E SEK EL CASTILLO – UCJC AZUL", entrenadores:"", liga:"voleibol"},
+  {nombre:"C.D.E SEK EL CASTILLO – UCJC NARANJA", entrenadores:"", liga:"voleibol"},
+  {nombre:"C.D.E SEK EL CASTILLO – UCJC VERDE", entrenadores:"", liga:"voleibol"},
+  {nombre:"C.D.E SEK EL CASTILLO – UCJC MORADO", entrenadores:"", liga:"voleibol"},
+  {nombre:"C.D.E SEK EL CASTILLO – UCJC RED",  entrenadores:"", liga:"voleibol"},
+  {nombre:"C.D.E SEK EL CASTILLO – UCJC AMARILLO", entrenadores:"", liga:"voleibol"},
+  {nombre:"C.D.E SEK EL CASTILLO – UCJC GREEN", entrenadores:"", liga:"voleibol"},
+  {nombre:"CDE QUERCUS EDUCAJUNIOR",           entrenadores:"", liga:"voleibol"},
+  {nombre:"COLEGIO EVEREST AMARILLO",          entrenadores:"", liga:"voleibol"},
+  {nombre:"COLEGIO EVEREST CELESTE",           entrenadores:"", liga:"voleibol"},
+  {nombre:"COLEGIO HÉLADE",                    entrenadores:"", liga:"voleibol"},
+  {nombre:"COLEGIO PADRE GARRALDA",            entrenadores:"", liga:"voleibol"},
+  {nombre:"HIGHLANDS SCHOOL LOS FRESNOS A",    entrenadores:"", liga:"voleibol"},
+  {nombre:"HIGHLANDS SCHOOL LOS FRESNOS B",    entrenadores:"", liga:"voleibol"},
+  {nombre:"ST MICHAEL'S SCHOOL WHITE",         entrenadores:"", liga:"voleibol"},
 ];
 
 const CAMPOS_BASE = {
-  "Kolbe":           {Viernes:{ini:"18:00",fin:"20:00",max:2}, Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Av. de la Universidad, 4, Villanueva de la Cañada"},
-  "Zola":            {Viernes:{ini:"17:00",fin:"19:00",max:2}, Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Colegio Zola, Villafranca del Castillo"},
-  "Los Pinos":       {Viernes:{ini:"17:00",fin:"19:00",max:2}, Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Av. de los Estudiantes, Villanueva del Pardillo"},
-  "St. Michael":     {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"C/ Río Guadiana, 2, Boadilla del Monte"},
-  "Highlands":       {Sabado:{ini:"09:00",fin:"11:00",max:2}, dir:"C/ de la Comunidad Canaria, 8, Boadilla del Monte"},
-  "Fresnedillas":    {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Fresnedillas de la Oliva, Madrid"},
-  "Quijorna":        {Viernes:{ini:"17:00",fin:"19:00",max:2}, Sabado:{ini:"12:00",fin:"14:00",max:2}, dir:"C/ Del Pinar, 11, Quijorna"},
-  "Zarzalejo":       {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Campo de Fútbol de Zarzalejo, Madrid"},
-  "Arenales":        {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"C/ De la Guardia, 1, Arroyomolinos"},
-  "Everest":         {Viernes:{ini:"17:30",fin:"19:30",max:2}, Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Colegio Everest, Madrid"},
-  "SEK":             {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"C/ Castillo de Manzanares, Villafranca del Castillo"},
-  "Navalagamella":   {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Campo Fútbol Navalagamella, Juan Antonio Gutiérrez"},
-  "La Cañada":       {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Campo Municipal, Villanueva de la Cañada"},
-  "CEU":             {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Colegio CEU Montepríncipe, Boadilla del Monte"},
-  "Quercus":         {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Colegio Quercus Educajunior, Madrid"},
-  "Pardillo":        {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Campo Municipal Los Pinos, Villanueva del Pardillo"},
-  "Santa María":     {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Campo de Fútbol Santa María de la Alameda"},
-  "Brunete":         {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Campo Municipal de Brunete"},
-  "Vallmont":        {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Colegio Vallmont, Madrid"},
-  // ── FÚTBOL SALA ──
-  "Pabellón Vallmont":          {Sabado:{ini:"09:00",fin:"14:00",max:4}, dir:"Colegio Vallmont, Villanueva de la Cañada"},
-  "Pabellón Kolbe":             {Viernes:{ini:"17:00",fin:"20:00",max:3}, Sabado:{ini:"09:00",fin:"14:00",max:4}, dir:"Av. de la Universidad, 4, Villanueva de la Cañada"},
-  "Pabellón Infanta Cristina":  {Viernes:{ini:"17:00",fin:"20:00",max:3}, Sabado:{ini:"09:00",fin:"14:00",max:4}, dir:"Camino Retamar, Villanueva del Pardillo"},
-  "Pista Exterior Infanta Cristina": {Viernes:{ini:"17:00",fin:"20:00",max:3}, Sabado:{ini:"09:00",fin:"14:00",max:4}, dir:"Camino Retamar, Villanueva del Pardillo"},
-  "Colegio Arcadia":            {Viernes:{ini:"17:00",fin:"20:00",max:3}, Sabado:{ini:"09:00",fin:"14:00",max:4}, dir:"Colegio Arcadia, Madrid"},
-  "Pabellón Zola":              {Viernes:{ini:"17:00",fin:"20:00",max:3}, Sabado:{ini:"09:00",fin:"14:00",max:4}, dir:"Colegio Zola, Villafranca del Castillo"},
-  "Pista Kolbe Secundaria":     {Viernes:{ini:"17:00",fin:"20:00",max:3}, Sabado:{ini:"09:00",fin:"14:00",max:4}, dir:"Av. de la Universidad, 4, Villanueva de la Cañada"},
+  "PISTA 1 C.I. Kolbe":                {Viernes:{ini:"17:00",fin:"20:00",max:3}, Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Av. de la Universidad, 4, Villanueva de la Cañada"},
+  "PISTA 2 C.I. Kolbe":                {Viernes:{ini:"17:00",fin:"20:00",max:3}, Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"Av. de la Universidad, 4, Villanueva de la Cañada"},
+  "Pista 2 Polideportivo UCJC":        {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"C/ Castillo de Alarcón 47, Villafranca del Castillo"},
+  "Pista 3 Polideportivo UCJC":        {Sabado:{ini:"09:00",fin:"14:00",max:5}, dir:"C/ Castillo de Alarcón 47, Villafranca del Castillo"},
 };
 
 const LUGAR_MAP = [
@@ -5429,6 +5396,9 @@ function filtrarTorneosClupik(){
   const onlyActive = document.getElementById("clupik-only-active").checked;
   const FIN = ["finished","canceled","finalizado","terminado","cancelado"];
   const filtered = torneosClupikCache.filter(function(t){
+    // App voleibol: solo mostrar torneos cuyo nombre contenga VOLEIBOL/VOLLEY
+    const nombreUp = (t.name||"").toUpperCase();
+    if(!nombreUp.includes("VOLEIBOL") && !nombreUp.includes("VOLLEY")) return false;
     if(onlyActive && FIN.indexOf((t.status||"").toLowerCase()) !== -1) return false;
     if(search && !(t.name||"").toLowerCase().includes(search)) return false;
     return true;
