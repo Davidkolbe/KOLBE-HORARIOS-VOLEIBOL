@@ -4667,10 +4667,9 @@ function resumenKolbeResultados(){
         partidosKolbe.forEach(function(p){
           var compUp = (p.comp||"").toUpperCase();
 
-          // ⚠️ FILTRO 1 — saltar voleibol: la modal aún no tiene filas de voleibol,
-          // y los equipos voleibol comparten nombres con F7/FS (CD KOLBE BLANCO, etc.).
-          // Si los aceptamos, contaminan los marcadores reales de F7.
-          if(compUp.indexOf("VOLEIBOL") !== -1 || compUp.indexOf("VOLLEY") !== -1){
+          // App voleibol: solo aceptar partidos de voleibol/volley.
+          // Si llega algo de F7/FS (no debería gracias al filtro del backend, pero por si acaso), saltar.
+          if(compUp.indexOf("VOLEIBOL") === -1 && compUp.indexOf("VOLLEY") === -1){
             saltadosVoleibol++;
             return;
           }
@@ -4679,7 +4678,8 @@ function resumenKolbeResultados(){
           var kolbeEsLocal = eq1Up.indexOf("KOLBE") !== -1;
           var equipoKolbeNorm = _normalizaNombreEquipo(kolbeEsLocal ? p.eq1 : p.eq2);
           var catApi = _categoriaDesdeComp(p.comp || "");
-          var discApi = (compUp.indexOf("F-7")!==-1 || compUp.indexOf("F7")!==-1) ? "F7"
+          var discApi = (compUp.indexOf("VOLEIBOL")!==-1 || compUp.indexOf("VOLLEY")!==-1) ? "VB"
+                      : (compUp.indexOf("F-7")!==-1 || compUp.indexOf("F7")!==-1) ? "F7"
                       : (compUp.indexOf("SALA")!==-1 || /\bFS\b/.test(compUp)) ? "FS" : "";
 
           // 1. Buscar candidatas con matching de nombre tolerante (todas las que coincidan)
@@ -4731,7 +4731,7 @@ function resumenKolbeResultados(){
         var resumen = "✓ " + rellenados + " resultados";
         if(aplazados) resumen += " · " + aplazados + " aplazados";
         if(sinMatch.length) resumen += " · " + sinMatch.length + " sin emparejar";
-        if(saltadosVoleibol) resumen += " · " + saltadosVoleibol + " voleibol";
+        if(saltadosVoleibol) resumen += " · " + saltadosVoleibol + " no-voleibol descartados";
         btnSync.textContent = resumen;
         btnSync.style.background = "var(--verde2,#2d6a4f)";
         if(sinMatch.length){
