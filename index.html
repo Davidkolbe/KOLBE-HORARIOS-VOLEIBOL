@@ -4614,6 +4614,18 @@ function resumenKolbeResultados(){
               }
               f.input.disabled = false;
               f.input.style.background = "#fff";
+              // CRÍTICO: actualizar también el array `rows[]` (closure local de
+              // resumenKolbeResultados) para que rowsParaIG vea el partido nuevo.
+              // Si solo cambiamos el DOM, el export a Instagram sigue mostrando "Descanso".
+              var rTarget = rows.find(function(rr){
+                return rr.disc + "_" + rr.equipo + "_" + rr.categoria === f.rk;
+              });
+              if(rTarget){
+                rTarget.partido = labelPart;
+                rTarget._p = kolbeEsLocal
+                  ? { eq1: "CD KOLBE", eq2: rival }
+                  : { eq1: rival, eq2: "CD KOLBE" };
+              }
             } catch(e){ console.warn("No se pudo habilitar fila DESCANSO:", e); }
           }
 
