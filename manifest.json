@@ -1,0 +1,15 @@
+{
+  "name": "Planificador Voleibol — CD Kolbe",
+  "short_name": "Voleibol Kolbe",
+  "description": "Planificador semanal de partidos de voleibol del Club Deportivo Kolbe",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#0BAB00",
+  "lang": "es",
+  "icons": [
+    { "src": "/icon-kolbe.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

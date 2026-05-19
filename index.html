@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Planificador semanal de partidos de voleibol del Club Deportivo Kolbe: importa la jornada desde Clupik, asigna horarios y campos, y genera los mensajes de WhatsApp para entrenadores y padres.">
+<meta name="theme-color" content="#0BAB00">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Voleibol Kolbe">
+<link rel="icon" type="image/svg+xml" href="/icon-kolbe.svg">
+<link rel="apple-touch-icon" href="/icon-kolbe.svg">
+<link rel="manifest" href="/manifest.json">
 <title>Planificador Voleibol — CD Kolbe</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -51,6 +59,25 @@ body{font-family:var(--f);background:var(--gris1);color:var(--negro);font-size:1
 .btn-ghost:hover{background:rgba(255,255,255,.1);color:#fff}
 .btn-sm{padding:4px 10px;font-size:12px}
 .btn-rojo{background:var(--rojo);color:#fff;border-color:var(--rojo)}
+
+/* Accesibilidad: contenido visualmente oculto */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Dropdown "Datos" en cabecera */
+.menu-wrap{position:relative;display:inline-block}
+.menu-wrap > .btn-ghost::after{content:" ▾";font-size:10px;opacity:.7;margin-left:2px}
+.menu-pop{position:absolute;top:calc(100% + 6px);right:0;background:#fff;color:var(--negro);border:1px solid var(--gris2);border-radius:var(--r);box-shadow:0 6px 24px rgba(0,0,0,.12);min-width:200px;padding:4px;z-index:300;display:none}
+.menu-wrap.open .menu-pop{display:block}
+.menu-pop button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:transparent;border:none;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--negro);font-family:var(--f)}
+.menu-pop button:hover{background:var(--gris1)}
+
+/* Sidebar Campos y horarios como <details> */
+details.card-collapsible{padding:0}
+details.card-collapsible > summary{list-style:none;padding:.875rem 1.25rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;color:var(--negro);border-bottom:1px solid var(--gris2)}
+details.card-collapsible > summary::-webkit-details-marker{display:none}
+details.card-collapsible > summary::after{content:" ▾";font-size:11px;color:var(--gris4);transition:transform .15s}
+details.card-collapsible:not([open]) > summary{border-bottom:none}
+details.card-collapsible:not([open]) > summary::after{transform:rotate(-90deg)}
 
 /* ESTADO VACÍO */
 .empty-state{text-align:center;padding:4rem 2rem;color:var(--gris4)}
@@ -157,6 +184,20 @@ body{font-family:var(--f);background:var(--gris1);color:var(--negro);font-size:1
   .topbar{padding:0 1rem}
   .wrap{padding:1rem}
 }
+
+@media(max-width:480px){
+  .topbar{height:auto;min-height:52px;flex-wrap:wrap;gap:6px;padding:8px 12px}
+  .topbar-actions{flex-wrap:wrap;gap:4px;width:100%;justify-content:flex-start}
+  .topbar-actions .btn{padding:6px 9px;font-size:11px}
+  .menu-pop{right:auto;left:0;min-width:180px}
+  .brand{font-size:13px;gap:6px}
+  .brand-sub{display:none}
+  .wrap{padding:.75rem}
+  .stat{padding:.625rem .5rem}
+  .stat-n{font-size:18px}
+  .partidos-table th:nth-child(3),
+  .partidos-table td:nth-child(3){display:none}
+}
 .wa-modal-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem}
 .wa-modal{background:#fff;border-radius:var(--radio-grande);padding:1.5rem;max-width:600px;width:100%;max-height:85vh;overflow-y:auto}
 .wa-modal-title{font-size:15px;font-weight:600;margin-bottom:1rem;color:var(--negro)}
@@ -173,6 +214,7 @@ body{font-family:var(--f);background:var(--gris1);color:var(--negro);font-size:1
 </style>
 </head>
 <body>
+<h1 class="sr-only">Planificador Voleibol Club Kolbe — Asignación de horarios y comunicación de partidos</h1>
 
 <div class="topbar">
   <div class="brand">
@@ -184,10 +226,15 @@ body{font-family:var(--f);background:var(--gris1);color:var(--negro);font-size:1
     <button class="btn btn-ghost btn-sm" onclick="toggleConf('equipos')">⚙ Entrenadores</button>
     <button class="btn btn-ghost btn-sm" onclick="toggleConf('coordinadores')">👤 Coordinadores</button>
     <button class="btn btn-ghost btn-sm" onclick="toggleConf('campos')">🏟 Campos</button>
-    <button class="btn btn-ghost btn-sm" onclick="guardarCopia()" title="Descarga una copia de seguridad con todas tus jornadas">💾 Guardar copia</button>
-    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('restore-input').click()" title="Restaura una copia de seguridad guardada anteriormente">📂 Restaurar</button>
+    <span class="menu-wrap" id="menu-datos">
+      <button class="btn btn-ghost btn-sm" type="button" onclick="toggleMenu('menu-datos')" aria-haspopup="true" aria-expanded="false">📁 Datos</button>
+      <div class="menu-pop" role="menu" aria-label="Acciones de datos">
+        <button type="button" onclick="closeMenus();guardarCopia()" title="Descarga una copia de seguridad con todas tus jornadas">💾 Guardar copia</button>
+        <button type="button" onclick="closeMenus();document.getElementById('restore-input').click()" title="Restaura una copia de seguridad guardada anteriormente">📂 Restaurar</button>
+        <button type="button" onclick="closeMenus();abrirArreglarFechas()" title="Recalcula la fecha de cada partido usando la semana + el día. Útil cuando un CSV importado ha dejado fechas incorrectas o vacías.">🛠 Arreglar fechas</button>
+      </div>
+    </span>
     <input type="file" id="restore-input" accept=".json" style="display:none" onchange="restaurarCopia(event)">
-    <button class="btn btn-ghost btn-sm" onclick="abrirArreglarFechas()" title="Recalcula la fecha de cada partido usando la semana + el día. Útil cuando un CSV importado ha dejado fechas incorrectas o vacías.">🛠 Arreglar fechas</button>
     <button class="btn btn-ghost btn-sm" onclick="resetTodo()" id="btn-reset" style="display:none">↺ Nueva semana</button>
   </div>
 </div>
@@ -246,6 +293,7 @@ body{font-family:var(--f);background:var(--gris1);color:var(--negro);font-size:1
     <div style="max-width:600px;margin:2rem auto">
 
       <!-- Jornadas guardadas -->
+      <div id="backup-indicator" style="font-size:11px;color:var(--gris5);margin-bottom:.5rem;padding:6px 10px;background:var(--gris1);border-radius:6px;display:none"></div>
       <div id="historial-box" style="display:none;margin-bottom:1.5rem">
         <div style="font-size:13px;font-weight:600;margin-bottom:.75rem;color:var(--negro)">Jornadas guardadas</div>
         <div id="historial-lista"></div>
@@ -372,13 +420,13 @@ body{font-family:var(--f);background:var(--gris1);color:var(--negro);font-size:1
       <!-- PANEL LATERAL -->
       <div style="display:flex;flex-direction:column;gap:1rem">
 
-        <!-- CAMPOS Y FRANJAS -->
-        <div class="card">
-          <div class="card-head"><span class="card-title">Campos y horarios</span></div>
+        <!-- CAMPOS Y FRANJAS (colapsable en mobile) -->
+        <details class="card card-collapsible" id="card-campos-horarios" open>
+          <summary>Campos y horarios</summary>
           <div class="card-body" style="padding:.75rem 1rem">
             <div id="campos-info"></div>
           </div>
-        </div>
+        </details>
 
         <!-- ENTRENADORES CON CONFLICTO POTENCIAL -->
         <div class="card">
@@ -394,6 +442,82 @@ body{font-family:var(--f);background:var(--gris1);color:var(--negro);font-size:1
 </div>
 
 <script>
+// ============ UI HELPERS (menús cabecera, sidebar mobile, PWA) ============
+function toggleMenu(id){
+  var el = document.getElementById(id);
+  if(!el) return;
+  var isOpen = el.classList.contains("open");
+  closeMenus();
+  if(!isOpen){
+    el.classList.add("open");
+    var btn = el.querySelector("button[aria-haspopup]");
+    if(btn) btn.setAttribute("aria-expanded","true");
+  }
+}
+function closeMenus(){
+  document.querySelectorAll(".menu-wrap.open").forEach(function(w){
+    w.classList.remove("open");
+    var btn = w.querySelector("button[aria-haspopup]");
+    if(btn) btn.setAttribute("aria-expanded","false");
+  });
+}
+document.addEventListener("click", function(e){
+  if(!e.target.closest(".menu-wrap")) closeMenus();
+});
+document.addEventListener("keydown", function(e){
+  if(e.key === "Escape") closeMenus();
+});
+
+function _autoCollapseSidebar(){
+  var card = document.getElementById("card-campos-horarios");
+  if(!card) return;
+  if(window.matchMedia("(max-width: 480px)").matches){
+    if(!card.dataset.collapsedAuto){
+      card.removeAttribute("open");
+      card.dataset.collapsedAuto = "1";
+    }
+  } else if(card.dataset.collapsedAuto){
+    card.setAttribute("open","");
+    delete card.dataset.collapsedAuto;
+  }
+}
+window.addEventListener("DOMContentLoaded", _autoCollapseSidebar);
+window.addEventListener("resize", _autoCollapseSidebar);
+
+if("serviceWorker" in navigator && location.protocol === "https:"){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("/sw.js").catch(function(err){
+      console.warn("SW registro falló:", err);
+    });
+  });
+}
+
+(function(){
+  var TOUCH = ("ontouchstart" in window) || navigator.maxTouchPoints > 0;
+  if(!TOUCH) return;
+  var timer = null, toastEl = null;
+  function showToast(text){
+    if(!toastEl){
+      toastEl = document.createElement("div");
+      toastEl.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1c1c1a;color:#fff;font-size:12px;padding:8px 14px;border-radius:6px;z-index:9999;pointer-events:none;opacity:0;transition:opacity .15s;max-width:80%;text-align:center";
+      document.body.appendChild(toastEl);
+    }
+    toastEl.textContent = text;
+    toastEl.style.opacity = "1";
+    clearTimeout(toastEl._hide);
+    toastEl._hide = setTimeout(function(){ toastEl.style.opacity = "0"; }, 1800);
+  }
+  document.addEventListener("touchstart", function(e){
+    var t = e.target.closest("[title]");
+    if(!t) return;
+    var txt = t.getAttribute("title");
+    if(!txt) return;
+    timer = setTimeout(function(){ showToast(txt); }, 500);
+  }, {passive:true});
+  document.addEventListener("touchend", function(){ if(timer){ clearTimeout(timer); timer=null; } }, {passive:true});
+  document.addEventListener("touchmove", function(){ if(timer){ clearTimeout(timer); timer=null; } }, {passive:true});
+})();
+
 // ============ DATOS BASE ============
 const EQUIPOS_BASE = [
   // === CD KOLBE VOLEIBOL ===
@@ -538,11 +662,38 @@ const CATEG_MAP = {
   "LIGA FS INFANTIL":"Infantil","LIGA FS CADETE":"Cadete"
 };
 
+// ===== Sanitizador encoding (caracteres rotos U+FFFD en datos viejos) =====
+function _fixCharReplacement(s){
+  if(typeof s !== "string" || s.indexOf("�") < 0) return s;
+  return s
+    .replace(/PREBENJAM�N/gi, "PREBENJAMÍN")
+    .replace(/BENJAM�MN/gi, "BENJAMÍN")
+    .replace(/BENJAM�N/gi, "BENJAMÍN")
+    .replace(/ALEV�N/gi, "ALEVÍN")
+    .replace(/INFANT�L/gi, "INFANTIL")
+    .replace(/F�TBOL/gi, "FÚTBOL")
+    .replace(/CHUPET�N/gi, "CHUPETÍN")
+    .replace(/�/g, "");
+}
+
 // ============ ESTADO ============
 let partidos = [];
 let campoActivo = "todos";
 let filtroActivo = "todos";
 let equipos = JSON.parse(localStorage.getItem('kolbe_equipos') || 'null') || EQUIPOS_BASE;
+// Migración silenciosa: reparar U+FFFD heredados de imports antiguos
+(function(){
+  var dirty = false;
+  equipos.forEach(function(e){
+    ["nombre","entrenadores","categoria","liga"].forEach(function(f){
+      if(typeof e[f] === "string" && e[f].indexOf("\uFFFD") >= 0){
+        var fixed = _fixCharReplacement(e[f]);
+        if(fixed !== e[f]){ e[f] = fixed; dirty = true; }
+      }
+    });
+  });
+  if(dirty) localStorage.setItem('kolbe_equipos', JSON.stringify(equipos));
+})();
 
 function recalcularEntrenadores(){
   if(!partidos.length) return;
@@ -604,6 +755,68 @@ function resetEquiposDefault(){
 
 // ============ UTILIDADES ============
 function toMins(t){ const[h,m]=(t||"00:00").split(":").map(Number); return h*60+m; }
+
+// Hora de convocatoria (30 min antes) o "" si no aplica
+function _getConvocatoria(p){
+  if(!p || p.aplazado || p.sinHora || !p.hora || p.hora === "00:00") return "";
+  var mins = toMins(p.hora) - 30;
+  if(mins < 0) return "";
+  return String(Math.floor(mins/60)).padStart(2,"0") + ":" + String(mins%60).padStart(2,"0") + "h";
+}
+
+// Fix 14: listar quién no tiene teléfono configurado
+function _kolbeEntrenadoresSinTel(){
+  var faltan = [];
+  if(typeof partidos === 'undefined' || !partidos) return faltan;
+  var vistos = new Set();
+  partidos.forEach(function(p){
+    if(typeof esEquipoKolbe !== "function") return;
+    var esK1 = esEquipoKolbe(p.eq1), esK2 = esEquipoKolbe(p.eq2);
+    if(!esK1 && !esK2) return;
+    var equipo = esK1 ? p.eq1 : p.eq2;
+    var ents = (typeof getEntrenadores === "function") ? getEntrenadores(equipo, p.categoria, (typeof ligaDeComp==="function")?ligaDeComp(p.comp):"") : "";
+    String(ents||"").split(/[,\/]/).map(function(s){return s.trim();}).filter(Boolean).forEach(function(nn){
+      if(!nn || /^ENTREN_|ENTRENADOR /i.test(nn)) return;
+      if(vistos.has(nn)) return;
+      vistos.add(nn);
+      var tel = (typeof _telPrefijo === "function") ? _telPrefijo(entrenadoresTels[nn]||"") : (entrenadoresTels[nn]||"");
+      if(!tel) faltan.push({nombre: nn, equipo: equipo});
+    });
+  });
+  return faltan;
+}
+function _coordinadoresSinTel(){
+  var faltan = [];
+  if(typeof partidos === 'undefined' || !partidos) return faltan;
+  var clubsRivales = new Set();
+  partidos.forEach(function(p){
+    [p.eq1, p.eq2].forEach(function(eq){
+      if(!eq || !clubBase || typeof clubBase !== "function") return;
+      var c = clubBase(eq);
+      if(c && !/KOLBE/i.test(c) && c !== "Sin campo") clubsRivales.add(c);
+    });
+  });
+  clubsRivales.forEach(function(c){
+    var info = coordinadores && coordinadores[c];
+    var tel = info ? _telPrefijo(info.telefono||"") : "";
+    if(!tel) faltan.push({nombre: (info && info.nombre) || "(sin nombre)", club: c});
+  });
+  return faltan;
+}
+function _mostrarFaltantes(tipo){
+  var lista = tipo === "entrenadores" ? _kolbeEntrenadoresSinTel() : _coordinadoresSinTel();
+  if(!lista.length){
+    alert("✓ Todos los " + (tipo==="entrenadores"?"entrenadores Kolbe":"coordinadores rivales") + " tienen teléfono configurado.");
+    return;
+  }
+  var msg = (tipo==="entrenadores"?"Entrenadores Kolbe":"Coordinadores rivales") + " sin teléfono ("+lista.length+"):\n\n"
+    + lista.map(function(x){
+        return "• " + x.nombre + (x.equipo ? " — " + x.equipo : (x.club ? " — " + x.club : ""));
+      }).join("\n")
+    + "\n\nAñádelos en " + (tipo==="entrenadores"?"⚙ Entrenadores → Teléfonos":"👤 Coordinadores");
+  alert(msg);
+}
+window._mostrarFaltantes = _mostrarFaltantes;
 
 function lugarACampo(lugar){
   if(!lugar) return null;
@@ -1126,7 +1339,7 @@ function renderPartidoRow(p){
     </td>
     <td style="font-size:12px;color:var(--gris5)">${entDisplay}</td>
     <td><select class="dia-select" onchange="updatePartido(${p.id},'dia',this.value)">${diaOpts}</select></td>
-    <td><input type="time" class="hora-input ${p.conflicto?'conflicto':''}" value="${p.sinHora?'':p.hora}" onchange="updatePartido(${p.id},'hora',this.value)" placeholder="--:--"></td>
+    <td>${p.aplazado ? '<span style="font-size:12px;color:var(--gris5);font-style:italic;padding:4px 6px;display:inline-block">— sin fecha —</span>' : `<input type="time" class="hora-input ${p.conflicto?'conflicto':''}" value="${p.sinHora?'':p.hora}" onchange="updatePartido(${p.id},'hora',this.value)" placeholder="--:--">`}</td>
     <td>${estado}</td>
     <td style="display:flex;gap:4px;align-items:center">
       <button class="btn btn-sm" style="padding:3px 7px;font-size:11px;border:1px solid ${p.aplazado?'#ffc107':'var(--gris3)'};background:${p.aplazado?'#fff3cd':'transparent'};cursor:pointer;border-radius:5px;color:${p.aplazado?'#856404':'var(--gris5)'}" onclick="toggleAplazado(${p.id})" title="Marcar como aplazado">📌</button>
@@ -1495,6 +1708,37 @@ function getAllJornadas(){
 }
 function saveAllJornadas(arr){ localStorage.setItem("kolbe_jornadas", JSON.stringify(arr)); }
 
+// ===== Migración 19/05/26: claves "Semana " legacy → canónico =====
+(function migrarClavesSemana(){
+  try {
+    if(localStorage.getItem("kolbe_migrado_claves_semana_v1") === "1") return;
+    var arr = [];
+    try { arr = JSON.parse(localStorage.getItem("kolbe_jornadas") || "[]"); } catch(_){}
+    var changed = false;
+    arr.forEach(function(j){
+      if(j && typeof j.semana === "string" && /^Semana\s+/.test(j.semana)){
+        j.semana = j.semana.replace(/^Semana\s+/, "");
+        changed = true;
+      }
+    });
+    if(changed) localStorage.setItem("kolbe_jornadas", JSON.stringify(arr));
+    var prefijos = ["kolbe_resumen_edits_", "kolbe_resumen_resultados_"];
+    var SEM = "Semana ";
+    Object.keys(localStorage).forEach(function(k){
+      prefijos.forEach(function(pref){
+        if(k.indexOf(pref + SEM) === 0){
+          var canonical = pref + k.substring(pref.length + SEM.length);
+          var legacy = localStorage.getItem(k);
+          var current = localStorage.getItem(canonical);
+          if(legacy && !current) localStorage.setItem(canonical, legacy);
+          localStorage.removeItem(k);
+        }
+      });
+    });
+    localStorage.setItem("kolbe_migrado_claves_semana_v1", "1");
+  } catch(e){ if(window.console) console.warn("Migración claves Semana:", e); }
+})();
+
 function savePartidos(){
   if(!jornadaActivaId) return;
   const jornadas = getAllJornadas();
@@ -1523,6 +1767,15 @@ function loadPartidos(){
   renderHistorial();
 }
 
+function _fechaFinJornada(semStr){
+  if(!semStr) return null;
+  var m = String(semStr).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s*[–-]\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m) return new Date(parseInt(m[6],10), parseInt(m[5],10)-1, parseInt(m[4],10));
+  m = String(semStr).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m) return new Date(parseInt(m[3],10), parseInt(m[2],10)-1, parseInt(m[1],10));
+  return null;
+}
+
 function renderHistorial(){
   const jornadas = getAllJornadas();
   const box = document.getElementById("historial-lista");
@@ -1530,20 +1783,31 @@ function renderHistorial(){
   if(!box || !hbox) return;
   if(!jornadas.length){ hbox.style.display="none"; return; }
   hbox.style.display = "block";
-  box.innerHTML = jornadas.map(function(j){
+
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var activas = [], pasadas = [];
+  jornadas.forEach(function(j){
+    var fin = _fechaFinJornada(j.semana);
+    if(fin && fin < hoy) pasadas.push(j); else activas.push(j);
+  });
+
+  function _renderJornada(j, esPasada){
     const total = (j.partidos||[]).length;
     const sinH  = (j.partidos||[]).filter(function(p){ return p.sinHora; }).length;
     const conf  = (j.partidos||[]).filter(function(p){ return p.conflicto; }).length;
     const fecha = j.createdAt ? new Date(j.createdAt).toLocaleDateString("es-ES") : "";
-    const badge = conf>0
+    const badge = esPasada
+      ? `<span style="background:var(--gris2);color:var(--gris5);border:1px solid var(--gris3);padding:2px 8px;border-radius:99px;font-size:11px">Pasada</span>`
+      : conf>0
       ? `<span style="background:var(--rojo-s);color:var(--rojo);border:1px solid var(--rojo-b);padding:2px 8px;border-radius:99px;font-size:11px">${conf} conflicto${conf>1?"s":""}</span>`
       : sinH>0
       ? `<span style="background:var(--naranja-s);color:var(--naranja);border:1px solid var(--naranja-b);padding:2px 8px;border-radius:99px;font-size:11px">${sinH} sin hora</span>`
       : `<span style="background:var(--verde-s);color:var(--verde);border:1px solid var(--verde-b);padding:2px 8px;border-radius:99px;font-size:11px">✓ Completa</span>`;
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border:1px solid var(--gris2);border-radius:var(--r);margin-bottom:6px;background:#fff;cursor:pointer"
+    var opacity = esPasada ? ";opacity:.65" : "";
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border:1px solid var(--gris2);border-radius:var(--r);margin-bottom:6px;background:#fff;cursor:pointer${opacity}"
       onclick="abrirJornada('${j.id}')"
-      onmouseover="this.style.borderColor='var(--verde2)';this.style.background='var(--verde-s)'"
-      onmouseout="this.style.borderColor='var(--gris2)';this.style.background='#fff'">
+      onmouseover="this.style.borderColor='var(--verde2)';this.style.background='var(--verde-s)';this.style.opacity='1'"
+      onmouseout="this.style.borderColor='var(--gris2)';this.style.background='#fff';this.style.opacity='${esPasada?'.65':'1'}'">
       <div>
         <div style="font-size:13px;font-weight:500">Semana del ${j.semana}</div>
         <div style="font-size:11px;color:var(--gris4);margin-top:2px">${total} partidos · ${fecha}</div>
@@ -1554,8 +1818,39 @@ function renderHistorial(){
           style="padding:3px 8px;border:1px solid var(--gris3);border-radius:5px;background:transparent;cursor:pointer;color:var(--rojo);font-size:12px">✕</button>
       </div>
     </div>`;
-  }).join("");
+  }
+
+  var html = activas.map(function(j){ return _renderJornada(j, false); }).join("");
+  if(pasadas.length){
+    html += '<details style="margin-top:10px"><summary style="cursor:pointer;font-size:12px;color:var(--gris4);padding:6px 4px;list-style:none">Jornadas pasadas (' + pasadas.length + ') ▾</summary><div style="margin-top:6px">'
+         + pasadas.map(function(j){ return _renderJornada(j, true); }).join("")
+         + '</div></details>';
+  }
+  box.innerHTML = html;
+  try{ renderBackupIndicator(); }catch(e){}
 }
+
+function renderBackupIndicator(){
+  var el = document.getElementById("backup-indicator");
+  if(!el) return;
+  var iso = localStorage.getItem("kolbe_last_backup");
+  var parts = ["🗓 Backup automático diario a las 23:00 (Drive)"];
+  if(iso){
+    try {
+      var d = new Date(iso);
+      var diff = Date.now() - d.getTime();
+      var hum;
+      if(diff < 60*1000) hum = "hace un momento";
+      else if(diff < 60*60*1000) hum = "hace " + Math.floor(diff/60000) + " min";
+      else if(diff < 24*60*60*1000) hum = "hace " + Math.floor(diff/3600000) + " h";
+      else hum = "hace " + Math.floor(diff/86400000) + " días";
+      parts.unshift("💾 Última copia manual: " + hum);
+    } catch(e){}
+  }
+  el.textContent = parts.join("  ·  ");
+  el.style.display = "block";
+}
+window.addEventListener("DOMContentLoaded", function(){ try{ renderBackupIndicator(); }catch(e){} });
 
 // Recorre los partidos actuales y, para los que estan "Sin campo", intenta
 // asignarles uno usando (1) lugarACampo sobre el texto original de Clupik si
@@ -1798,6 +2093,32 @@ function asistenteEnvios(){
     bloque.appendChild(header);
     bloque.appendChild(body);
     return bloque;
+  }
+
+  // Fix 14: aviso clickable con faltantes
+  var _falEnt = _kolbeEntrenadoresSinTel();
+  var _falCoord = _coordinadoresSinTel();
+  if(_falEnt.length || _falCoord.length){
+    var aviso = document.createElement("div");
+    aviso.style.cssText = "margin-bottom:1rem;padding:10px 14px;border:1px solid var(--naranja-b);background:var(--naranja-s);border-radius:var(--r);font-size:12px;color:var(--naranja);display:flex;gap:12px;flex-wrap:wrap;align-items:center";
+    var label = document.createElement("span");
+    label.innerHTML = "⚠ Sin teléfono: ";
+    aviso.appendChild(label);
+    if(_falEnt.length){
+      var bE = document.createElement("button");
+      bE.textContent = _falEnt.length + " entrenador" + (_falEnt.length>1?"es":"") + " Kolbe";
+      bE.style.cssText = "padding:3px 10px;background:#fff;color:var(--naranja);border:1px solid var(--naranja-b);border-radius:6px;font-size:11px;cursor:pointer;font-family:var(--f);font-weight:600";
+      bE.addEventListener("click", function(){ _mostrarFaltantes("entrenadores"); });
+      aviso.appendChild(bE);
+    }
+    if(_falCoord.length){
+      var bC = document.createElement("button");
+      bC.textContent = _falCoord.length + " coordinador" + (_falCoord.length>1?"es":"") + " rival";
+      bC.style.cssText = "padding:3px 10px;background:#fff;color:var(--naranja);border:1px solid var(--naranja-b);border-radius:6px;font-size:11px;cursor:pointer;font-family:var(--f);font-weight:600";
+      bC.addEventListener("click", function(){ _mostrarFaltantes("coordinadores"); });
+      aviso.appendChild(bC);
+    }
+    wrapper.appendChild(aviso);
   }
 
   wrapper.appendChild(mkBloque(
@@ -2566,6 +2887,10 @@ function _idbSet(key, value){
 }
 
 async function guardarCopia(){
+  function _markBackupOk(){
+    try { localStorage.setItem("kolbe_last_backup", new Date().toISOString()); } catch(e){}
+    if(typeof renderBackupIndicator === "function") renderBackupIndicator();
+  }
   const backup = {
     version: 1,
     fecha: new Date().toISOString(),
@@ -2602,6 +2927,7 @@ async function guardarCopia(){
       const writable = await fileHandle.createWritable();
       await writable.write(json);
       await writable.close();
+      _markBackupOk();
       if(box) box.innerHTML = '<div class="alert alert-ok"><span class="alert-icon">💾</span><div>Copia guardada como <b>'+filename+'</b> en la carpeta elegida (se sobrescribe si ya existía).</div></div>' + box.innerHTML;
       return;
     } catch(err){
@@ -3276,7 +3602,13 @@ function vistaEquipos(){
       var dir = (CAMPOS_BASE[campoDirKey]&&CAMPOS_BASE[campoDirKey].dir) ||
                 (CAMPOS_BASE[p.campo]&&CAMPOS_BASE[p.campo].dir) || p.campo;
 
-      msg += "⏰ " + hora + " · " + (p.eq1||"") + " vs " + (p.eq2||"") + NL;
+      var _conv = _getConvocatoria(p);
+      if(_conv){
+        msg += "🔔 Conv: " + _conv + " · ⏰ Partido: " + hora + NL;
+        msg += (p.eq1||"") + " vs " + (p.eq2||"") + NL;
+      } else {
+        msg += "⏰ " + hora + " · " + (p.eq1||"") + " vs " + (p.eq2||"") + NL;
+      }
       if(p.categoria) msg += "🏆 " + p.categoria + (p.grupo?" · "+p.grupo:"") + " · " + condicion + NL;
       if(!p.aplazado){
         msg += "🏟 " + (campoDirKey||p.campo||"") + NL;
@@ -4120,6 +4452,7 @@ function exportarInstagramKolbe(format, semana, rowsIG, kind, opts){
           a.download = "kolbe-" + tag + (kind === "resultados" ? "resultados-" : "") + format + "-" + slug + "." + ext;
           document.body.appendChild(a); a.click(); a.remove();
           URL.revokeObjectURL(url);
+  _markBackupOk();
           c.remove();
           resolve();
         }, mimeType, quality);
@@ -4306,6 +4639,79 @@ function resumenKolbeResultados(){
   titulo.innerHTML = '<h2 style="font-size:16px;font-weight:700;margin-bottom:.25rem;color:var(--verde);text-align:center">🏆 RESULTADOS CD KOLBE — ' + semana.toUpperCase() + '</h2>'
     + '<p style="font-size:11px;color:var(--gris4);margin-bottom:1rem;text-align:center">Rellena el marcador (<strong>3-1</strong>) o escribe <strong>APLAZADO</strong> / <strong>POR DISPUTAR</strong>. El icono ✅/❌/➖/📌/⏳ se calcula solo (clic en el icono para ciclarlo a mano).</p>';
 
+  // === Botón Auto-rellenar marcadores desde Leverade ===
+  var barraAuto = document.createElement("div");
+  barraAuto.style.cssText = "display:flex;justify-content:center;margin-bottom:1rem";
+  var btnAutoFetch = document.createElement("button");
+  btnAutoFetch.textContent = "🏐 Auto-rellenar marcadores desde Leverade";
+  btnAutoFetch.style.cssText = "padding:8px 18px;background:var(--verde);color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--f)";
+  btnAutoFetch.title = "Consulta los marcadores en api.leverade.com de los partidos finalizados y los rellena automáticamente.";
+  btnAutoFetch.addEventListener("click", async function(){
+    var trs = tbody.querySelectorAll("tr[data-match-id]");
+    if(!trs.length){
+      alert("No hay partidos con match_id de Leverade en esta jornada.\n\nImporta la jornada desde Clupik (en lugar de subir CSV) para que cada partido tenga su match_id.");
+      return;
+    }
+    var ids = Array.from(trs).map(function(t){ return t.getAttribute("data-match-id"); });
+    var orig = btnAutoFetch.textContent;
+    btnAutoFetch.textContent = "⏳ Consultando Leverade...";
+    btnAutoFetch.disabled = true;
+    try {
+      var r = await fetch("/api/clupik-match-results?match_ids=" + encodeURIComponent(ids.join(",")));
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      var data = await r.json();
+      var byId = {};
+      (data.results || []).forEach(function(x){ byId[String(x.match_id)] = x; });
+
+      var nRell = 0, nVacio = 0, nApl = 0, nNoEnc = 0;
+      trs.forEach(function(tr){
+        var mid = tr.getAttribute("data-match-id");
+        var side = tr.getAttribute("data-kolbe-side");
+        var inf = byId[mid];
+        var inp = tr.querySelector("input[type=text]");
+        var btnIc = tr.querySelector("button[title*=\"ciclar\"]");
+        if(!inf || !inf.found){ nNoEnc++; return; }
+
+        if(inf.postponed){
+          if(inp){
+            inp.value = "APLAZADO";
+            if(inp.disabled){ inp.disabled = false; inp.style.background = "#fff"; }
+            inp.dispatchEvent(new Event("input",{bubbles:true}));
+          }
+          if(btnIc){ btnIc.dataset.forced = "📌"; btnIc.textContent = "📌"; }
+          nApl++;
+          return;
+        }
+        if(inf.canceled) return;
+
+        if(inf.home_score == null || inf.away_score == null){ nVacio++; return; }
+
+        var kolbe = side === "home" ? inf.home_score : inf.away_score;
+        var rival = side === "home" ? inf.away_score : inf.home_score;
+        if(inp){
+          if(inp.disabled){ inp.disabled = false; inp.style.background = "#fff"; }
+          inp.value = String(kolbe) + "-" + String(rival);
+          inp.dispatchEvent(new Event("input",{bubbles:true}));
+        }
+        nRell++;
+      });
+
+      var partes = [];
+      partes.push("✅ " + nRell + " marcador" + (nRell!==1?"es":"") + " rellenado" + (nRell!==1?"s":""));
+      if(nApl) partes.push("📌 " + nApl + " aplazado" + (nApl!==1?"s":""));
+      if(nVacio) partes.push("⏳ " + nVacio + " sin resultado en Leverade todavía");
+      if(nNoEnc) partes.push("❓ " + nNoEnc + " partido(s) no encontrado(s) en la API");
+      alert("Resultados Leverade:\n\n" + partes.join("\n"));
+    } catch(e){
+      alert("Error consultando Leverade:\n" + e.message);
+    } finally {
+      btnAutoFetch.textContent = orig;
+      btnAutoFetch.disabled = false;
+    }
+  });
+  barraAuto.appendChild(btnAutoFetch);
+  wrapper.appendChild(barraAuto);
+
   // Tabla
   var table = document.createElement("table");
   table.style.cssText = "width:100%;border-collapse:collapse;font-size:12px";
@@ -4336,6 +4742,12 @@ function resumenKolbeResultados(){
 
     var tr = document.createElement("tr");
     tr.setAttribute("data-rowkey", rk);
+    // Anotar match_id y lado (home/away) para botón Auto-rellenar Leverade
+    if(r._p && r._p.match_id){
+      tr.setAttribute("data-match-id", String(r._p.match_id));
+      var _esLocalKolbe = (typeof esEquipoKolbe === "function") ? esEquipoKolbe(r._p.eq1) : (String(r._p.eq1||"").toUpperCase().includes("KOLBE"));
+      tr.setAttribute("data-kolbe-side", _esLocalKolbe ? "home" : "away");
+    }
     tr.style.cssText = "background:" + (i%2===0?"#fff":"var(--gris1)");
 
     function cell(content, color, bold){
@@ -4842,7 +5254,13 @@ function vistaCategorias(){
         const campoDirKey = p.campo || p.campoOriginal;
         const dir = (CAMPOS_BASE[campoDirKey]&&CAMPOS_BASE[campoDirKey].dir)||
                     (CAMPOS_BASE[p.campo]&&CAMPOS_BASE[p.campo].dir)||p.campo;
-        msg += "⏰ " + hora + " · " + p.eq1 + " vs " + (p.eq2||"—") + "\n";
+        const _convCat = _getConvocatoria(p);
+        if(_convCat){
+          msg += "🔔 Conv: " + _convCat + " · ⏰ Partido: " + hora + "\n";
+          msg += p.eq1 + " vs " + (p.eq2||"—") + "\n";
+        } else {
+          msg += "⏰ " + hora + " · " + p.eq1 + " vs " + (p.eq2||"—") + "\n";
+        }
         msg += "🏟 " + (campoDirKey||p.campo) + " · 📍 " + dir + "\n";
       });
       msg += "\n";
@@ -5495,7 +5913,7 @@ async function importarSemanaClupik(){
       };
     });
 
-    const semana = "Semana " + from + " – " + to;
+    const semana = from + " – " + to;  // sin prefijo "Semana " — consistente con resto
     const arr = getAllJornadas();
     const id = "j_clupik_semana_" + Date.now();
     arr.unshift({
