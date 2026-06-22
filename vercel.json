@@ -4,5 +4,8 @@
     "api/clupik-*.js": {
       "maxDuration": 30
     }
-  }
+  },
+  "crons": [
+    { "path": "/api/backup", "schedule": "0 6 * * *" }
+  ]
 }
