@@ -6,6 +6,9 @@
     }
   },
   "crons": [
-    { "path": "/api/backup", "schedule": "0 6 * * *" }
+    {
+      "path": "/api/keepalive",
+      "schedule": "0 6 * * *"
+    }
   ]
 }

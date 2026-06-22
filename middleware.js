@@ -3,7 +3,7 @@
 // Credenciales en variables de entorno de Vercel: BASIC_AUTH_USER y BASIC_AUTH_PASS
 
 export const config = {
-  matcher: '/((?!favicon\\.ico).*)',
+  matcher: '/((?!favicon\\.ico|api/keepalive).*)',
 };
 
 export default function middleware(request) {
