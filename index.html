@@ -226,6 +226,7 @@ details.card-collapsible:not([open]) > summary::after{transform:rotate(-90deg)}
     <button class="btn btn-ghost btn-sm" onclick="toggleConf('equipos')">⚙ Entrenadores</button>
     <button class="btn btn-ghost btn-sm" onclick="toggleConf('coordinadores')">👤 Coordinadores</button>
     <button class="btn btn-ghost btn-sm" onclick="toggleConf('campos')">🏟 Campos</button>
+    <button class="btn btn-ghost btn-sm" onclick="toggleConf('preferencias')">🎯 Preferencias</button>
     <span class="menu-wrap" id="menu-datos">
       <button class="btn btn-ghost btn-sm" type="button" onclick="toggleMenu('menu-datos')" aria-haspopup="true" aria-expanded="false">📁 Datos</button>
       <div class="menu-pop" role="menu" aria-label="Acciones de datos">
@@ -281,6 +282,19 @@ details.card-collapsible:not([open]) > summary::after{transform:rotate(-90deg)}
       </div>
       <div style="font-size:11px;color:var(--gris4);margin-bottom:.75rem">Contacto de cada club externo para mandarles WhatsApp con los partidos. Teléfono con prefijo (+34...). Autodetecta clubes a partir de los partidos cargados.</div>
       <div id="coordinadores-config" style="display:flex;flex-direction:column;gap:4px"></div>
+    </div>
+
+    <!-- SECCIÓN PREFERENCIAS POR EQUIPO -->
+    <div id="conf-preferencias" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+        <span style="font-size:13px;font-weight:600">Preferencias de los equipos</span>
+        <button class="btn btn-verde btn-sm" onclick="addPreferenciaRow()">+ Añadir preferencia</button>
+      </div>
+      <div style="font-size:11px;color:var(--gris4);margin-bottom:.75rem">Se aplican al pulsar «Asignar horarios». <b>Obligatoria</b>: nunca se incumple (si no cabe, el partido se queda sin hora y se avisa). <b>Deseable</b>: se intenta primero y, si no cabe, el partido va a cualquier hueco. Hora mínima = no antes de esa hora. «Solo en casa» = solo cuando el equipo juega de local. Fechas sin jugar en formato dd/mm/aaaa separadas por coma.</div>
+      <div style="display:grid;grid-template-columns:2.2fr .9fr .7fr .6fr .8fr .9fr 1.6fr 1.6fr 28px;gap:4px;font-size:10px;color:var(--gris4);font-weight:600;padding:0 2px 4px">
+        <span>Equipo (como en Clupik)</span><span>Categoría</span><span>No antes de</span><span>Solo en casa</span><span>Día</span><span>Tipo</span><span>Fechas sin jugar</span><span>Motivo</span><span></span>
+      </div>
+      <div id="preferencias-config" style="display:flex;flex-direction:column;gap:4px"></div>
     </div>
 
   </div>
@@ -2297,17 +2311,99 @@ function toggleConf(seccion){
   const eqDiv = document.getElementById("conf-equipos");
   const caDiv = document.getElementById("conf-campos");
   const coDiv = document.getElementById("conf-coordinadores");
+  const prDiv = document.getElementById("conf-preferencias");
   const mismaSeccion = panel.style.display !== "none" &&
     ((seccion==="equipos"       && eqDiv.style.display!=="none") ||
      (seccion==="campos"        && caDiv.style.display!=="none") ||
-     (seccion==="coordinadores" && coDiv && coDiv.style.display!=="none"));
+     (seccion==="coordinadores" && coDiv && coDiv.style.display!=="none") ||
+     (seccion==="preferencias"  && prDiv && prDiv.style.display!=="none"));
   if(mismaSeccion){ panel.style.display="none"; return; }
   panel.style.display = "block";
   eqDiv.style.display = seccion==="equipos" ? "block" : "none";
   caDiv.style.display = seccion==="campos"  ? "block" : "none";
   if(coDiv) coDiv.style.display = seccion==="coordinadores" ? "block" : "none";
+  if(prDiv) prDiv.style.display = seccion==="preferencias" ? "block" : "none";
   if(seccion==="campos") renderCamposConfig();
   if(seccion==="coordinadores") renderCoordinadoresConfig();
+  if(seccion==="preferencias") renderPreferenciasConfig();
+}
+
+// ============ PREFERENCIAS POR EQUIPO (hora mínima, día, fechas sin jugar) ============
+// Se guardan en localStorage "kolbe_preferencias" y se sincronizan como el resto (SYNC_KEYS).
+// Cada una: {equipo, categoria, horaMin "HH:MM", soloCasa, dia ""|"Viernes"|"Sabado",
+//            tipo "deseable"|"obligatoria", sinJugar "dd/mm/aaaa, dd/mm/aaaa", motivo}
+let preferencias = [];
+try { preferencias = JSON.parse(localStorage.getItem("kolbe_preferencias") || "[]") || []; } catch(e){ preferencias = []; }
+
+function savePreferencias(){
+  try { localStorage.setItem("kolbe_preferencias", JSON.stringify(preferencias)); } catch(e){}
+}
+
+function _normEquipoPref(s){
+  return (s||"").toUpperCase().replace(/[.,;:"“”]/g,"").replace(/\s+/g," ").trim();
+}
+
+function _fechasSinJugar(pr){
+  return String(pr.sinJugar||"").split(/[,;\n]/).map(function(s){
+    var m = s.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if(!m) return null;
+    return (m[1].length<2?"0":"")+m[1] + "/" + (m[2].length<2?"0":"")+m[2] + "/" + m[3];
+  }).filter(Boolean);
+}
+
+// Preferencias que tocan a un partido: [{pr, esLocal}]
+function prefsDePartido(p){
+  var out = [];
+  var e1 = _normEquipoPref(p.eq1), e2 = _normEquipoPref(p.eq2);
+  preferencias.forEach(function(pr){
+    var n = _normEquipoPref(pr.equipo);
+    if(!n) return;
+    if(pr.categoria && p.categoria && normCat(pr.categoria) !== normCat(p.categoria)) return;
+    if(n === e1) out.push({pr: pr, esLocal: true});
+    else if(n === e2) out.push({pr: pr, esLocal: false});
+  });
+  return out;
+}
+
+function renderPreferenciasConfig(){
+  var box = document.getElementById("preferencias-config");
+  if(!box) return;
+  var nombres = [];
+  (equipos||[]).forEach(function(e){ if(e.nombre && nombres.indexOf(e.nombre)<0) nombres.push(e.nombre); });
+  var dl = '<datalist id="pref-equipos-list">' + nombres.map(function(n){ return '<option value="'+n.replace(/"/g,"&quot;")+'">'; }).join("") + '</datalist>';
+  var cats = ["","Benjamín","Alevín","Infantil","Cadete","Juvenil"];
+  if(!preferencias.length){
+    box.innerHTML = dl + '<div style="font-size:12px;color:var(--gris4)">No hay preferencias. Pulsa «+ Añadir preferencia».</div>';
+    return;
+  }
+  var esc = function(v){ return String(v==null?"":v).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); };
+  box.innerHTML = dl + preferencias.map(function(pr, i){
+    return '<div style="display:grid;grid-template-columns:2.2fr .9fr .7fr .6fr .8fr .9fr 1.6fr 1.6fr 28px;gap:4px;align-items:center">'
+      + '<input list="pref-equipos-list" value="'+esc(pr.equipo)+'" onchange="updPref('+i+',\'equipo\',this.value)" style="font-size:12px;padding:4px 6px">'
+      + '<select onchange="updPref('+i+',\'categoria\',this.value)" style="font-size:12px">' + cats.map(function(c){ return '<option value="'+c+'"'+(pr.categoria===c?' selected':'')+'>'+(c||'— Todas —')+'</option>'; }).join("") + '</select>'
+      + '<input type="time" value="'+esc(pr.horaMin)+'" onchange="updPref('+i+',\'horaMin\',this.value)" style="font-size:12px">'
+      + '<input type="checkbox" '+(pr.soloCasa?'checked':'')+' onchange="updPref('+i+',\'soloCasa\',this.checked)" title="Solo cuando juega en casa">'
+      + '<select onchange="updPref('+i+',\'dia\',this.value)" style="font-size:12px"><option value="">— Igual —</option><option value="Viernes"'+(pr.dia==="Viernes"?' selected':'')+'>Viernes</option><option value="Sabado"'+(pr.dia==="Sabado"?' selected':'')+'>Sábado</option></select>'
+      + '<select onchange="updPref('+i+',\'tipo\',this.value)" style="font-size:12px"><option value="deseable"'+(pr.tipo!=="obligatoria"?' selected':'')+'>🟡 Deseable</option><option value="obligatoria"'+(pr.tipo==="obligatoria"?' selected':'')+'>🔴 Obligatoria</option></select>'
+      + '<input value="'+esc(pr.sinJugar)+'" placeholder="dd/mm/aaaa, dd/mm/aaaa" onchange="updPref('+i+',\'sinJugar\',this.value)" style="font-size:12px;padding:4px 6px">'
+      + '<input value="'+esc(pr.motivo)+'" onchange="updPref('+i+',\'motivo\',this.value)" style="font-size:12px;padding:4px 6px">'
+      + '<button class="btn btn-sm" onclick="delPref('+i+')" style="color:var(--rojo,#c0392b);background:transparent;border:none">✕</button>'
+      + '</div>';
+  }).join("");
+}
+
+function addPreferenciaRow(){
+  preferencias.push({equipo:"", categoria:"", horaMin:"", soloCasa:false, dia:"", tipo:"deseable", sinJugar:"", motivo:""});
+  savePreferencias(); renderPreferenciasConfig();
+}
+function updPref(i, campo, val){
+  if(!preferencias[i]) return;
+  preferencias[i][campo] = val;
+  savePreferencias();
+  if(campo==="equipo" || campo==="categoria") renderPreferenciasConfig();
+}
+function delPref(i){
+  preferencias.splice(i,1); savePreferencias(); renderPreferenciasConfig();
 }
 
 // ============ COORDINADORES (contacto de clubes rivales para WhatsApp) ============
@@ -2716,7 +2812,7 @@ function autoAsignar(){
   // Función: hay conflicto de entrenador en ese slot
   function hayConflictoEnt(p, dia, hora, idIgnorar){
     const pIni = toMins(hora), pFin = pIni+60;
-    const entsP = [...(p.ent1||"").split(","), ...(p.ent2||"").split(",")].map(e=>e.trim().toUpperCase()).filter(Boolean);
+    const entsP = [...(p.ent1||"").split(/[,\/]/), ...(p.ent2||"").split(/[,\/]/)].map(e=>e.trim().toUpperCase()).filter(Boolean);
     return partidos.some(q => {
       if(q.id === p.id || q.id === idIgnorar) return false;
       if(q.sinHora && !asignados[q.id]) return false;
@@ -2726,7 +2822,7 @@ function autoAsignar(){
       if(q.sinHora && !asignados[q.id]) return false;
       const qIni = toMins(qHora), qFin = qIni+60;
       if(pIni >= qFin || qIni >= pFin) return false;
-      const entsQ = [...(q.ent1||"").split(","), ...(q.ent2||"").split(",")].map(e=>e.trim().toUpperCase()).filter(Boolean);
+      const entsQ = [...(q.ent1||"").split(/[,\/]/), ...(q.ent2||"").split(/[,\/]/)].map(e=>e.trim().toUpperCase()).filter(Boolean);
       return entsP.some(e => e && entsQ.includes(e));
     });
   }
@@ -2746,13 +2842,40 @@ function autoAsignar(){
   camposEnPartidos.forEach(function(c){ if(!camposOrden.includes(c)) camposOrden.push(c); });
   const diasOrden = ["Lunes","Martes","Miercoles","Jueves","Viernes","Sabado","Domingo"];
 
+  // ── Preferencias por equipo (🎯 Preferencias) ──
+  // Pasada estricta: se respetan todas. Pasada relajada: solo las obligatorias.
+  let _jorPref = null;
+  try { _jorPref = getAllJornadas().find(function(j){ return j.id === jornadaActivaId; }) || null; } catch(e){}
+  const _motivosPref = {}; // p.id -> textos de por qué una preferencia lo bloqueó
+  function _prefCheck(p, dia, estricto){
+    let minH = null, ok = true;
+    const fecha = _jorPref ? _fechaParaDia(_jorPref, dia) : null;
+    prefsDePartido(p).forEach(function(x){
+      const pr = x.pr;
+      const manda = estricto || pr.tipo === "obligatoria";
+      if(!manda) return;
+      const aplicaCasa = !pr.soloCasa || x.esLocal;
+      const etiqueta = pr.equipo + (pr.motivo ? " (" + pr.motivo + ")" : "");
+      if(fecha && _fechasSinJugar(pr).indexOf(fecha) >= 0){
+        ok = false; (_motivosPref[p.id] = _motivosPref[p.id] || []).push(etiqueta + ": no juega el " + fecha);
+      }
+      if(aplicaCasa && pr.dia && pr.dia !== dia){
+        ok = false; (_motivosPref[p.id] = _motivosPref[p.id] || []).push(etiqueta + ": solo " + _diaLargo(pr.dia));
+      }
+      if(aplicaCasa && pr.horaMin && (!minH || toMins(pr.horaMin) > toMins(minH))) minH = pr.horaMin;
+    });
+    return { ok: ok, minH: minH };
+  }
+
+  [true, false].forEach(function(estricto){
+  if(!estricto) Object.keys(_motivosPref).forEach(function(k){ delete _motivosPref[k]; });
   camposOrden.forEach(campo => {
     diasOrden.forEach(dia => {
       const ps = sinHora.filter(p => {
         if(asignados[p.id]) return false;
         const c = p.campo && p.campo !== "Sin campo" ? p.campo : "Sin campo";
-        return c === campo;
-      });
+        return c === campo && _prefCheck(p, dia, estricto).ok;
+      }).sort(function(a, b){ return prefsDePartido(b).length - prefsDePartido(a).length; }); // primero los que piden algo
       if(!ps.length) return;
       const franja = getFranja(campo, dia);
       if(!franja) return;
@@ -2767,6 +2890,8 @@ function autoAsignar(){
         // Hora mínima por reglas extra
         let minH = franja.ini;
         let horaExacta = null;
+        const _pmin = _prefCheck(p, dia, estricto).minH;
+        if(_pmin && toMins(_pmin) > toMins(minH)) minH = _pmin;
         reglasExtra.forEach(function(r){
           const res = aplicarReglaExtra(p, r);
           if(res && res.minHora){
@@ -2797,6 +2922,7 @@ function autoAsignar(){
       });
     });
   });
+  }); // fin pasadas estricta/relajada
 
   // ── APLICAR asignaciones y detectar sin slot ──
   let asignados_count = 0;
@@ -2850,6 +2976,33 @@ function autoAsignar(){
         </div>
       </div>`;
     });
+  }
+
+  // ── Avisos de preferencias ──
+  const _uniq = function(a){ return a.filter(function(v,i){ return a.indexOf(v)===i; }); };
+  const bloqueados = sinSlot.filter(function(p){ return _motivosPref[p.id]; });
+  if(bloqueados.length){
+    alertasHtml += `<div class="alert alert-err"><span class="alert-icon">🎯</span><div>
+      <strong>Sin hora por una preferencia obligatoria</strong> — hay que aplazarlo o hablar con el club:<br>
+      ${bloqueados.map(function(p){ return "<em>"+p.eq1+" vs "+p.eq2+"</em> · "+_uniq(_motivosPref[p.id]).join(" · "); }).join("<br>")}
+    </div></div>`;
+  }
+  const noCumplidas = [];
+  partidos.forEach(function(p){
+    if(!asignados[p.id]) return;
+    const prs = prefsDePartido(p);
+    if(!prs.length) return;
+    const a = asignados[p.id];
+    const chk = _prefCheck(p, a.dia, true);
+    if(!chk.ok || (chk.minH && toMins(a.hora) < toMins(chk.minH))){
+      noCumplidas.push("<em>"+p.eq1+" vs "+p.eq2+"</em> · "+_diaLargo(a.dia)+" "+a.hora+" · "+prs.map(function(x){ return x.pr.equipo + (x.pr.motivo?" ("+x.pr.motivo+")":""); }).join(" · "));
+    }
+  });
+  if(noCumplidas.length){
+    alertasHtml += `<div class="alert alert-warn"><span class="alert-icon">🟡</span><div>
+      <strong>Preferencias deseables que no han cabido</strong> — el partido tiene hora, pero no la que pidió el club:<br>
+      ${noCumplidas.join("<br>")}
+    </div></div>`;
   }
 
   box.innerHTML = alertasHtml + box.innerHTML;
@@ -7057,7 +7210,8 @@ function aplicarArreglarFechas(){
   const SYNC_KEYS = [
     "kolbe_jornadas", "kolbe_equipos", "kolbe_campos",
     "kolbe_coordinadores", "kolbe_entrenadores_tels",
-    "kolbe_grupos_wa", "kolbe_gruposWA"
+    "kolbe_grupos_wa", "kolbe_gruposWA",
+    "kolbe_preferencias"
   ];
   const POLL_MS = 30000;
   const DEBOUNCE_MS = 2000;
