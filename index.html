@@ -225,6 +225,7 @@ details.card-collapsible:not([open]) > summary::after{transform:rotate(-90deg)}
   <div class="topbar-actions">
     <button class="btn btn-ghost btn-sm" onclick="toggleConf('equipos')">⚙ Entrenadores</button>
     <button class="btn btn-ghost btn-sm" onclick="toggleConf('coordinadores')">👤 Coordinadores</button>
+    <button class="btn btn-ghost btn-sm" onclick="toggleConf('coincidencias')">🔁 Coincidencias</button>
     <button class="btn btn-ghost btn-sm" onclick="toggleConf('campos')">🏟 Campos</button>
     <button class="btn btn-ghost btn-sm" onclick="toggleConf('preferencias')">🎯 Preferencias</button>
     <span class="menu-wrap" id="menu-datos">
@@ -282,6 +283,15 @@ details.card-collapsible:not([open]) > summary::after{transform:rotate(-90deg)}
       </div>
       <div style="font-size:11px;color:var(--gris4);margin-bottom:.75rem">Contacto de cada club externo para mandarles WhatsApp con los partidos. Teléfono con prefijo (+34...). Autodetecta clubes a partir de los partidos cargados.</div>
       <div id="coordinadores-config" style="display:flex;flex-direction:column;gap:4px"></div>
+    </div>
+
+    <!-- SECCIÓN COINCIDENCIAS (vista por club de los mismos datos de ⚙ Entrenadores y 🎯 Preferencias) -->
+    <div id="conf-coincidencias" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+        <span style="font-size:13px;font-weight:600">Coincidencias — entrenadores y preferencias por club</span>
+      </div>
+      <div style="font-size:11px;color:var(--gris4);margin-bottom:.75rem">Los equipos de un mismo entrenador no se programan a la vez. Esta pestaña <b>no guarda nada aparte</b>: lee y cambia lo mismo que ⚙ Entrenadores (un equipo por fila) y 🎯 Preferencias. Si cambias aquí el nombre de un entrenador, cambia en todos sus equipos de ese club.</div>
+      <div id="coincidencias-config" style="display:flex;flex-direction:column;gap:10px"></div>
     </div>
 
     <!-- SECCIÓN PREFERENCIAS POR EQUIPO -->
@@ -2312,6 +2322,19 @@ function toggleConf(seccion){
   const caDiv = document.getElementById("conf-campos");
   const coDiv = document.getElementById("conf-coordinadores");
   const prDiv = document.getElementById("conf-preferencias");
+  const ciDiv = document.getElementById("conf-coincidencias");
+  if(ciDiv){
+    const abierta = panel.style.display !== "none" && ciDiv.style.display !== "none";
+    if(seccion === "coincidencias"){
+      if(abierta){ panel.style.display = "none"; return; }
+      panel.style.display = "block";
+      [eqDiv, caDiv, coDiv, prDiv].forEach(function(d){ if(d) d.style.display = "none"; });
+      ciDiv.style.display = "block";
+      renderCoincidenciasVoley();
+      return;
+    }
+    ciDiv.style.display = "none";
+  }
   const mismaSeccion = panel.style.display !== "none" &&
     ((seccion==="equipos"       && eqDiv.style.display!=="none") ||
      (seccion==="campos"        && caDiv.style.display!=="none") ||
@@ -2326,6 +2349,99 @@ function toggleConf(seccion){
   if(seccion==="campos") renderCamposConfig();
   if(seccion==="coordinadores") renderCoordinadoresConfig();
   if(seccion==="preferencias") renderPreferenciasConfig();
+}
+
+// ============ COINCIDENCIAS (vista por club; mismos datos que equipos y preferencias) ============
+const _CLUBES_VOLEY = [
+  [/^ABV BOADILLA/, "ABV BOADILLA"], [/^ARCADIA|^COLEGIO ARCADIA/, "ARCADIA"],
+  [/^AVENGERS/, "AVENGERS LFIMOLIÈRE"], [/^C\.?D\.?E\.? SEK/, "SEK EL CASTILLO – UCJC"],
+  [/^CDE QUERCUS/, "QUERCUS EDUCAJUNIOR"], [/^CD KOLBE/, "CD KOLBE"],
+  [/^COLEGIO EVEREST/, "EVEREST"], [/^COLEGIO H[ÉE]LADE/, "HÉLADE"], [/^COLEGIO VALLMONT/, "VALLMONT"],
+  [/^COLEGIO ZOLA/, "ZOLA"], [/^COLEGIO PADRE GARRALDA/, "PADRE GARRALDA"], [/^CV BULLDOGS/, "CV BULLDOGS"],
+  [/^HIGHLANDS/, "HIGHLANDS LOS FRESNOS"], [/^MQC/, "MQC LAS ENCINAS"], [/^ST\.? MICHAEL/, "ST MICHAEL'S"]
+];
+function clubDeEquipo(nombre){
+  const n = _normEquipoPref(nombre);
+  for(const [re, club] of _CLUBES_VOLEY){ if(re.test(n)) return club; }
+  return n.split(" ").slice(0,2).join(" ");
+}
+function _entsDe(e){ return String(e.entrenadores||"").split(/[,\/]/).map(function(s){ return s.trim().toUpperCase(); }).filter(Boolean); }
+const _ABR_CAT = {"Benjamín":"BENJ","Alevín":"ALEV","Infantil":"INF","Cadete":"CAD","Juvenil":"JUV"};
+function _chipEquipo(e){
+  return '<span style="display:inline-block;font-size:11px;padding:2px 7px;margin:2px 3px 2px 0;border:1px solid var(--gris3);border-radius:10px;background:var(--gris1)">'
+    + (_ABR_CAT[e.categoria]||e.categoria||"?") + ' · ' + e.nombre + '</span>';
+}
+function renombrarEntrenadorClub(club, viejo, nuevo){
+  nuevo = (nuevo||"").trim().toUpperCase();
+  if(!nuevo || nuevo === viejo) return;
+  equipos.forEach(function(e){
+    if(clubDeEquipo(e.nombre) !== club) return;
+    const ents = _entsDe(e);
+    const i = ents.indexOf(viejo);
+    if(i >= 0){ ents[i] = nuevo; e.entrenadores = ents.filter(function(v,k){ return ents.indexOf(v)===k; }).join(", "); }
+  });
+  saveEquipos(); renderCoincidenciasVoley();
+  if(document.getElementById("equipos-config")) renderEquiposConfig();
+}
+function renderCoincidenciasVoley(){
+  const box = document.getElementById("coincidencias-config");
+  if(!box) return;
+  const clubs = {};
+  const porEnt = {};
+  (equipos||[]).forEach(function(e){
+    const club = clubDeEquipo(e.nombre);
+    const c = clubs[club] = clubs[club] || {ents:{}, sin:[]};
+    const ents = _entsDe(e);
+    if(!ents.length) c.sin.push(e);
+    ents.forEach(function(en){
+      (c.ents[en] = c.ents[en] || []).push(e);
+      (porEnt[en] = porEnt[en] || {});
+      (porEnt[en][club] = porEnt[en][club] || []).push(e);
+    });
+  });
+  const esc = function(v){ return String(v==null?"":v).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); };
+  const jsq = function(s){ return String(s).replace(/\\/g,"\\\\").replace(/'/g,"\\'"); };
+  let html = "";
+  const multiClub = Object.keys(porEnt).filter(function(en){ return Object.keys(porEnt[en]).length > 1; }).sort();
+  if(multiClub.length){
+    html += '<div style="border:1px solid var(--naranja-b);background:var(--naranja-s);border-radius:var(--r);padding:8px 10px">'
+      + '<div style="font-size:12px;font-weight:600;margin-bottom:4px">⚠️ Entrenadores con equipos en varios clubes</div>'
+      + multiClub.map(function(en){
+          const n = Object.values(porEnt[en]).reduce(function(s,a){ return s+a.length; }, 0);
+          return '<div style="font-size:12px;margin:3px 0"><b>' + esc(en) + '</b> · ' + n + ' equipos: '
+            + Object.keys(porEnt[en]).sort().map(function(cl){ return esc(cl) + ' (' + porEnt[en][cl].map(function(e){ return _ABR_CAT[e.categoria]||e.categoria; }).join(", ") + ')'; }).join(" · ") + '</div>';
+        }).join("")
+      + '</div>';
+  }
+  html += Object.keys(clubs).sort().map(function(club){
+    const c = clubs[club];
+    const ents = Object.keys(c.ents).sort(function(a,b){ return c.ents[b].length - c.ents[a].length || a.localeCompare(b); });
+    const prefs = preferencias.filter(function(pr){ return pr.equipo && clubDeEquipo(pr.equipo) === club; });
+    const filas = ents.map(function(en){
+      const varios = c.ents[en].length > 1;
+      return '<div style="display:grid;grid-template-columns:200px 1fr;gap:8px;align-items:start;margin-bottom:4px">'
+        + '<input value="' + esc(en) + '" onchange="renombrarEntrenadorClub(\'' + jsq(club) + '\',\'' + jsq(en) + '\',this.value)" '
+        +   'style="font-size:12px;padding:4px 6px;border:1px solid var(--gris3);border-radius:6px;' + (varios ? 'font-weight:600' : '') + '">'
+        + '<div>' + (varios ? '<span style="font-size:11px;color:var(--naranja)">🔁 no coinciden: </span>' : '') + c.ents[en].map(_chipEquipo).join("") + '</div>'
+        + '</div>';
+    }).join("");
+    const sin = c.sin.length
+      ? '<div style="font-size:11px;color:var(--gris4);margin-top:4px">Sin entrenador (' + c.sin.length + '): ' + c.sin.map(_chipEquipo).join("") + '</div>' : "";
+    const pref = prefs.length
+      ? '<div style="font-size:11px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--gris2)"><b>🎯 Preferencias</b><br>'
+        + prefs.map(function(pr){
+            const partes = [];
+            if(pr.horaMin) partes.push("no antes de las " + pr.horaMin + (pr.soloCasa ? " (en casa)" : ""));
+            if(pr.dia) partes.push("solo " + _diaLargo(pr.dia));
+            if(pr.sinJugar) partes.push("no juega: " + pr.sinJugar);
+            return (pr.tipo === "obligatoria" ? "🔴 " : "🟡 ") + esc(pr.equipo) + (pr.categoria ? " [" + esc(pr.categoria) + "]" : "") + " — " + esc(partes.join(" · ")) + (pr.motivo ? ' <span style="color:var(--gris4)">(' + esc(pr.motivo) + ')</span>' : "");
+          }).join("<br>") + '</div>' : "";
+    return '<div style="border:1px solid var(--gris2);border-radius:var(--r);background:#fff;padding:8px 10px">'
+      + '<div style="font-size:13px;font-weight:600;margin-bottom:6px">' + esc(club) + ' <span style="font-size:11px;font-weight:400;color:var(--gris4)">· ' + (ents.length ? ents.length + ' entrenador' + (ents.length>1?'es':'') : 'sin entrenadores') + '</span></div>'
+      + (filas || "") + sin + pref
+      + '</div>';
+  }).join("");
+  box.innerHTML = html || '<div style="font-size:12px;color:var(--gris4)">No hay equipos. Cárgalos en ⚙ Entrenadores.</div>';
 }
 
 // ============ PREFERENCIAS POR EQUIPO (hora mínima, día, fechas sin jugar) ============
