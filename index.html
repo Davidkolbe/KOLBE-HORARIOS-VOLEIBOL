@@ -3170,6 +3170,9 @@ async function guardarCopia(){
     entrenadoresTels: entrenadoresTels || {},
     gruposWA: gruposWA || {},
     facilityUserMap: _getFacilityUserMap(),
+    // Preferencias por equipo (hora mínima, día, fechas sin jugar). Añadidas el 19-10-2026:
+    // hasta entonces la copia no las guardaba y un Restaurar las dejaba como estuvieran.
+    preferencias: preferencias || [],
   };
   const json = JSON.stringify(backup, null, 2);
   const d = new Date();
@@ -3263,6 +3266,14 @@ function restaurarCopia(e){
       if(backup.entrenadoresTels && typeof backup.entrenadoresTels === "object"){
         entrenadoresTels = backup.entrenadoresTels;
         saveEntrenadoresTels();
+      }
+
+      // Restore preferencias por equipo. Las copias anteriores al 19-10-2026 no traen el
+      // campo: en ese caso las preferencias se quedan como están.
+      if(Array.isArray(backup.preferencias)){
+        preferencias = backup.preferencias;
+        savePreferencias();
+        if(typeof renderPreferenciasConfig === "function") renderPreferenciasConfig();
       }
 
       // Restore grupos WhatsApp
