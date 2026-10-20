@@ -1,6 +1,6 @@
 // Service worker Voleibol Kolbe
 // network-first para HTML/API, cache-first para assets estaticos
-const CACHE = "kolbe-voleibol-v1";
+const CACHE = "kolbe-voleibol-v2";
 const SHELL = ["/", "/icon-kolbe.svg", "/manifest.json"];
 
 self.addEventListener("install", e => {
@@ -18,6 +18,8 @@ self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
+  // Nunca cachear otros dominios (Supabase, Clupik): la sincronizacion leia una respuesta vieja
+  if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/")) return;
 
   const isHTML = req.mode === "navigate" || (req.headers.get("accept") || "").includes("text/html");
